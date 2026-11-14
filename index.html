@@ -19,6 +19,7 @@
   document.documentElement.setAttribute("data-theme", t);
 })();
 </script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap">
 <style>
 /* Layout: one narrow centered column. Logo and name on top, a single card below that holds either the drop area or the two result buttons. */
@@ -332,6 +333,19 @@ footer .version { margin-top: 4px; }
 @media (pointer: coarse) and (hover: none) { #adminBar { display: none !important; } }
 .upd-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 50; display: flex; align-items: center; gap: 14px; background: var(--fg); color: var(--bg); padding: 10px 10px 10px 16px; border-radius: 99px; font-size: 14px; box-shadow: var(--shadow); white-space: nowrap; }
 .upd-bar button { font: inherit; font-weight: 700; border: 0; border-radius: 99px; padding: 6px 14px; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
+/* Loading polish: a calm splash while sign-in resolves, shimmering placeholders for the list, and a soft fade-in. */
+#splash { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: var(--bg); transition: opacity .25s ease; }
+#splash.out { opacity: 0; pointer-events: none; }
+#splash i { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#app:not([hidden]), #loginView:not([hidden]) { animation: fade .3s ease both; }
+.sk { display: flex; align-items: center; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.sk b { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.sk b::before, .sk b::after, .sk i { content: ""; display: block; border-radius: 8px; background: linear-gradient(90deg, var(--line) 25%, var(--wash) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite; }
+.sk b::before { height: 14px; width: 46%; } .sk b::after { height: 11px; width: 68%; }
+.sk i { width: 38px; height: 38px; border-radius: 50%; flex: none; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { #splash i, .sk b::before, .sk b::after, .sk i { animation: none; } }
 #uploadCard.leaving { animation: sink .22s ease both; }
 @keyframes sink { to { opacity: 0; transform: translateY(8px) scale(.98); } }
 #adminBar:not([hidden]) { animation: fade .3s ease both; }
@@ -357,6 +371,7 @@ footer .version { margin-top: 4px; }
 <body>
 
 
+<div id="splash" aria-hidden="true"><i></i></div>
 <div dir="rtl" lang="he">
   <main id="loginView" hidden>
     <div class="view">
@@ -535,7 +550,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:24";
+var VERSION = "v15.11 · 00:27";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -887,7 +902,10 @@ function tsMs(t) { return t && t.toMillis ? t.toMillis() : 0; }
 async function loadSaved() {
   var box = $("savedList"), st = $("savedStatus");
   if (!box) return;
-  st.textContent = "טוען…"; st.hidden = false;
+  if (!state.saved) {
+    st.hidden = true; box.textContent = "";
+    for (var k = 0; k < 3; k++) { var sk = document.createElement("div"); sk.className = "sk"; sk.innerHTML = "<b></b><i></i>"; box.appendChild(sk); }
+  } else { st.textContent = "טוען…"; st.hidden = false; }
   try {
     var snap = await db.collection("factories").orderBy("updatedAt", "desc").get();
     state.saved = [];
@@ -908,7 +926,7 @@ async function loadSaved() {
     if (state.seenP) await state.seenP;
     renderSaved();
   } catch (e) {
-    st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
+    box.textContent = ""; st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
   }
 }
 
@@ -1521,6 +1539,7 @@ route();
    Firebase console; self-registration is switched off there. Access to the saved
    files is enforced by Firestore security rules, not by this page. */
 function showApp(on) {
+  var sp = $("splash"); if (sp) { sp.classList.add("out"); setTimeout(function () { sp.remove(); }, 300); }
   $("app").hidden = !on;
   $("loginView").hidden = on;
   if (on) route();
