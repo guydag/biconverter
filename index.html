@@ -466,7 +466,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:52";
+var VERSION = "v14.11 · 23:58";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -773,6 +773,19 @@ async function shareSaved(d) {
   var text = "עלה דוח חדש (" + d.name + ") · " + d.rows + " רשומים\n" + location.origin + location.pathname;
   window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
 }
+/* On phones "download" opens the share sheet with the file (it includes "Save to Files"); elsewhere it downloads. */
+async function getFile(d) {
+  if (canShareHere()) {
+    try {
+      var blob = base64ToBlob(d.data), file = new File([blob], d.fileName, { type: blob.type });
+      await navigator.share({ files: [file], title: d.name });
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+  }
+  try { await saveBlob(base64ToBlob(d.data), d.fileName); } catch (e) {}
+}
 var DEL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
 function tsMs(t) { return t && t.toMillis ? t.toMillis() : 0; }
 
@@ -835,19 +848,13 @@ function renderSaved() {
     info.appendChild(nr); info.appendChild(m);
     var b = document.createElement("button"); b.type = "button"; b.className = "share-btn dl-btn"; b.title = "הורדה"; b.setAttribute("aria-label", "הורדת " + d.name); b.innerHTML = DL_ICON;
     b.addEventListener("click", function () {
-      saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
+      getFile(d);
     });
     var acts = document.createElement("div"); acts.className = "saved-actions";
     var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
     pv.innerHTML = EYE_ICON;
     pv.addEventListener("click", function () { openPreview(d); });
     acts.appendChild(pv);
-    if (canShareHere()) {
-      var sh = document.createElement("button"); sh.type = "button"; sh.className = "share-btn"; sh.title = "שיתוף"; sh.setAttribute("aria-label", "שיתוף " + d.name);
-      sh.innerHTML = SHARE_ICON;
-      sh.addEventListener("click", function () { shareSaved(d); });
-      acts.appendChild(sh);
-    }
     if (state.isAdmin) {
       var del = document.createElement("button"); del.type = "button"; del.className = "del-btn"; del.title = "מחיקה"; del.setAttribute("aria-label", "מחיקת " + d.name);
       del.innerHTML = DEL_ICON;
@@ -935,7 +942,7 @@ function openPreview(d) {
   });
   var foot = document.createElement("div"); foot.className = "pv-foot";
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = "הורדה";
-  dl.addEventListener("click", function () { saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {}); });
+  dl.addEventListener("click", function () { getFile(d); });
   foot.appendChild(dl);
   box.appendChild(head); box.appendChild(sw); box.appendChild(wrap); box.appendChild(foot);
   ov.appendChild(box);
