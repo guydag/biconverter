@@ -595,7 +595,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:29";
+var VERSION = "v15.11 · 01:33";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -705,7 +705,7 @@ function process(matrix) {
     if (cols["מפעל"] !== -1) factory.push(m[cols["מפעל"]]);
   }
   if (!rows.length) throw new Error("לא נמצאו רשומים בקובץ.");
-  rows.sort(function (a, b) { return gradeIndex(a.gr) - gradeIndex(b.gr) || a.idx - b.idx; });
+  rows.sort(function (a, b) { return gradeIndex(a.gr) - gradeIndex(b.gr) || a.ln.localeCompare(b.ln, "he") || a.fn.localeCompare(b.fn, "he") || a.idx - b.idx; });
   return { rows: rows, keywords: deriveKeywords(factory) };
 }
 
@@ -721,10 +721,14 @@ function breakdown(rows) {
   return list;
 }
 
+/* Same wording as the push notification: title line, then body line, then the link. */
+function waText(name, n) {
+  return name + " עודכן \uD83D\uDD14\nדוח חדש עם " + n + " רשומים\n" + location.origin + location.pathname;
+}
 function setShare() {
   var a = $("share");
   var site = location.origin + location.pathname;
-  var text = "עלה דוח חדש (" + (state.keywords || "ללא מפעל") + ") · " + state.rows.length + " רשומים\n" + site;
+  var text = waText(state.keywords || "ללא מפעל", state.rows.length);
   a.href = "https://wa.me/?text=" + encodeURIComponent(text);
   a.hidden = false;
 }
@@ -926,7 +930,7 @@ async function shareSaved(d) {
   } catch (e) {
     if (e && e.name === "AbortError") return;
   }
-  var text = "עלה דוח חדש (" + d.name + ") · " + d.rows + " רשומים\n" + location.origin + location.pathname;
+  var text = waText(d.name, d.rows);
   window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
 }
 /* On phones "download" opens the share sheet with the file (it includes "Save to Files"); elsewhere it downloads. */
@@ -971,10 +975,27 @@ async function loadSaved() {
       })();
     }
     if (state.seenP) await state.seenP;
+    await Promise.all(state.saved.map(fixOrder));
     renderSaved();
   } catch (e) {
     box.textContent = ""; st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
   }
+}
+
+/* Reports saved before names were sorted (family name, then first name, inside each grade) are
+   re-ordered once; admins also save the fixed file back so everyone gets it. */
+async function fixOrder(x) {
+  var d = x.d;
+  try {
+    var wb = XLSX.read(d.data, { type: "base64" });
+    var m = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
+    var rows = m.slice(1).map(function (r, i) { return { fn: norm(r[0]), ln: norm(r[1]), gr: norm(r[2]), idx: i }; }).filter(function (r) { return r.fn || r.ln || r.gr; });
+    var sorted = rows.slice().sort(function (a, b) { return gradeIndex(a.gr) - gradeIndex(b.gr) || a.ln.localeCompare(b.ln, "he") || a.fn.localeCompare(b.fn, "he") || a.idx - b.idx; });
+    if (sorted.every(function (r, i) { return r === rows[i]; })) return;
+    var data = await blobToBase64(await buildBlob(sorted, true));
+    d.data = data;
+    if (state.isAdmin) { try { await db.collection("factories").doc(x.id).update({ data: data }); } catch (e) {} }
+  } catch (e) {}
 }
 
 function renderSaved() {
