@@ -501,7 +501,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:58";
+var VERSION = "v15.11 · 00:00";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1048,7 +1048,10 @@ function openPreview(d) {
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var sub = rows.slice(1).filter(function (r) { return gs.indexOf(norm(r[gi])) !== -1; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
     hint.textContent = "בקובץ: " + sub.length + " רשומים משכבות " + gs.join(", ");
-    var label = gs.join(", ").replace(/[\\\/:*?"<>|]/g, ""); if (label.length > 30) label = gs.length + " שכבות";
+    /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
+    var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
+    var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
+    var label = senior ? "שכבג" : gs.join(", ").replace(/[\\\/:*?"<>|]/g, ""); if (!senior && label.length > 30) label = gs.length + " שכבות";
     var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + label + ")";
     nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
