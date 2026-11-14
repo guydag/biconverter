@@ -213,10 +213,10 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .version { display: block; text-align: center; margin: 6px 0 0; font-size: 11px; color: var(--muted); opacity: .7; letter-spacing: .02em; }
 footer .version { margin-top: 4px; }
 .pv-open { overflow: hidden; }
-.pv-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(30,18,10,.45); backdrop-filter: blur(3px); opacity: 0; transition: opacity .2s ease; }
+.pv-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(30,18,10,.5); opacity: 0; transition: opacity .22s ease; }
 .pv-overlay.in { opacity: 1; }
-.pv-box { width: 100%; max-width: 520px; max-height: min(86dvh, 720px); display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transform: translateY(10px) scale(.98); transition: transform .22s cubic-bezier(.2,.7,.2,1); }
-.pv-overlay.in .pv-box { transform: none; }
+.pv-box { width: 100%; max-width: 520px; max-height: min(86dvh, 720px); display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transform: translateY(14px) scale(.98); opacity: 0; will-change: transform, opacity; transition: transform .26s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
+.pv-overlay.in .pv-box { transform: none; opacity: 1; }
 .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
 .pv-title { display: flex; flex-direction: column; min-width: 0; }
 .pv-title strong { font-size: 18px; overflow-wrap: anywhere; }
@@ -474,7 +474,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:15";
+var VERSION = "v15.11 · 00:22";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -981,8 +981,11 @@ function openPreview(d) {
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
   document.body.appendChild(ov);
   document.documentElement.classList.add("pv-open");
-  requestAnimationFrame(function () { ov.classList.add("in"); });
-  if (rows.length > 8) si.focus(); else x.focus();
+  void ov.offsetWidth; /* commit the starting state so the entrance really animates */
+  ov.classList.add("in");
+  /* No auto-focus on touch screens: the keyboard would pop up and shove the window while it opens. */
+  if (!canShareHere() && window.matchMedia && !matchMedia("(pointer: coarse)").matches) { if (rows.length > 8) si.focus(); else x.focus(); }
+  else x.focus({ preventScroll: true });
 }
 function closePreview(instant) {
   var ov = $("pvOverlay");
@@ -991,7 +994,7 @@ function closePreview(instant) {
   var back = previewReturn; previewReturn = null;
   if (instant) { ov.remove(); return; }
   ov.classList.remove("in");
-  setTimeout(function () { ov.remove(); }, 200);
+  setTimeout(function () { ov.remove(); }, 230);
   if (back && back.focus) try { back.focus(); } catch (e) {}
 }
 document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePreview(); });
