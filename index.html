@@ -524,7 +524,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:07";
+var VERSION = "v15.11 · 00:08";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1066,7 +1066,7 @@ function openPreview(d) {
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
     /* Every grade selected is the same as no filter: the regular, full file. */
-    if (!grades.length || grades.length >= order.length) { hint.textContent = ""; return; }
+    if (!grades.length || grades.length >= order.length) { hint.textContent = "סה\u05F4כ " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
     var gs = order.filter(function (g) { return grades.indexOf(g) !== -1; });
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
@@ -1080,7 +1080,7 @@ function openPreview(d) {
     nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
   }
-  foot.appendChild(dl); foot.appendChild(hint);
+  foot.appendChild(dl); foot.appendChild(hint); prepareGrade();
   box.appendChild(head); box.appendChild(sw); box.appendChild(headRow); box.appendChild(wrap); box.appendChild(foot);
   ov.appendChild(box);
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
