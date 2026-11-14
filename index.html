@@ -210,6 +210,8 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
   .user-row { padding-block: 7px; }
   .user-form { padding-block: 12px; }
 }
+.version { display: block; text-align: center; margin: 6px 0 0; font-size: 11px; color: var(--muted); opacity: .7; letter-spacing: .02em; }
+footer .version { margin-top: 4px; }
 .help summary { cursor: pointer; font-weight: 600; }
 .help { margin: 0; }
 
@@ -364,7 +366,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
       <div id="savedList"></div>
     </section>
 
-    <footer>הקבצים נשמרים במערכת ונגישים רק למשתמשים מורשים.</footer>
+    <footer>הקבצים נשמרים במערכת ונגישים רק למשתמשים מורשים.<span class="version" dir="ltr" data-version></span></footer>
     </div>
 
     <div class="view" id="viewSettings" hidden>
@@ -399,6 +401,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
       </div>
 
       <p class="note">נתקלתם בבעיה? אפשר לפנות לגיא, שמתחזק את האתר.</p>
+      <p class="version" dir="ltr" data-version></p>
       </div>
     </div>
   </main>
@@ -425,6 +428,8 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
+var VERSION = "v14.11 · 23:10";
+Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
 var $ = function (id) { return document.getElementById(id); };
