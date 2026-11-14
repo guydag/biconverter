@@ -227,6 +227,12 @@ footer .version { margin-top: 4px; }
 .saved.openable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .share-btn.dl-btn { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .share-btn.dl-btn:hover { filter: brightness(1.08); background: var(--accent); }
+@media (max-width: 420px) {
+  .saved { gap: 8px; padding-inline: 12px; }
+  .saved-actions { gap: 5px; }
+  .share-btn, .del-btn { width: 34px; height: 34px; }
+  .saved-info span { font-size: 13px; }
+}
 .clearable { position: relative; width: 100%; }
 .clearable .field { padding-inline-end: 42px; }
 .clearable input::-webkit-search-cancel-button, .clearable input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
@@ -460,7 +466,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:46";
+var VERSION = "v14.11 · 23:52";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -832,6 +838,10 @@ function renderSaved() {
       saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
     });
     var acts = document.createElement("div"); acts.className = "saved-actions";
+    var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
+    pv.innerHTML = EYE_ICON;
+    pv.addEventListener("click", function () { openPreview(d); });
+    acts.appendChild(pv);
     if (canShareHere()) {
       var sh = document.createElement("button"); sh.type = "button"; sh.className = "share-btn"; sh.title = "שיתוף"; sh.setAttribute("aria-label", "שיתוף " + d.name);
       sh.innerHTML = SHARE_ICON;
