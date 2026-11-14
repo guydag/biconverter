@@ -595,7 +595,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:33";
+var VERSION = "v15.11 · 01:36";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1532,7 +1532,7 @@ async function loadUsers() {
     var admins = {}; as.forEach(function (d) { admins[d.id] = true; });
     var list = []; us.forEach(function (d) { list.push({ id: d.id, name: (d.data() || {}).name || "", admin: !!admins[d.id] }); });
     Object.keys(admins).forEach(function (id) { if (!list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
-    list.sort(function (a, b) { return a.name.localeCompare(b.name, "he"); });
+    list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
     renderUsers();
   } catch (e) { st.textContent = "לא הצלחנו לטעון את המשתמשים."; st.hidden = false; }
