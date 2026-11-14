@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>body{margin:0}img{max-width:100%}.pv-overlay:not(.in){pointer-events:none}
+#newUser:placeholder-shown{direction:rtl;text-align:right}
 </style>
 <title>רשומי משואות</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -551,7 +552,7 @@ footer .version { margin-top: 4px; }
         <form class="card user-form" id="userForm" autocomplete="off">
           <strong>הוספת משתמש</strong>
           <input class="field" id="newUser" type="text" dir="ltr" placeholder="שם משתמש באנגלית" autocapitalize="none" spellcheck="false" required>
-          <input class="field" id="newName" type="text" placeholder="שם לברכה" required>
+          <input class="field" id="newName" type="text" placeholder="שם פרטי בעברית" required>
           <label class="check" for="newAdmin"><input type="checkbox" id="newAdmin"> מנהל (יכול להעלות ולמחוק קבצים)</label>
           <button class="btn primary" type="submit">הוספה</button>
           <p class="note" id="userMsg" hidden></p>
@@ -595,7 +596,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:36";
+var VERSION = "v15.11 · 01:37";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
