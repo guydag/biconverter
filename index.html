@@ -240,6 +240,14 @@ footer .version { margin-top: 4px; }
 .clear-btn[hidden] { display: none; }
 .clear-btn:hover { background: var(--accent); color: var(--accent-fg); }
 .clear-btn:active { transform: scale(.92); }
+.pv-chips { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; }
+.pv-chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; font: inherit; font-size: 14px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s, color .15s, border-color .15s; }
+.chip small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chip.on small { color: inherit; opacity: .85; }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pv-search { padding: 10px 14px 6px; }
 .pv-search .field { margin: 0; }
 .pv-none { text-align: center; padding: 18px; }
@@ -466,7 +474,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 00:05";
+var VERSION = "v15.11 · 00:15";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -921,6 +929,28 @@ function openPreview(d) {
   var sw = document.createElement("div"); sw.className = "pv-search";
   var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
   sw.appendChild(si); addClearButton(si);
+  var gi = rows.length ? rows[0].indexOf("שכבה") : -1;
+  if (gi === -1 && rows.length && rows[0].length > 1) gi = rows[0].length - 1;
+  var grade = "", chips = null;
+  var counts = {}, order = [];
+  if (gi !== -1) rows.slice(1).forEach(function (r) { var g = norm(r[gi]); if (!g) return; if (!(g in counts)) { counts[g] = 0; order.push(g); } counts[g]++; });
+  order.sort(function (a, b) { return gradeIndex(a) - gradeIndex(b) || a.localeCompare(b, "he"); });
+  if (order.length > 1) {
+    chips = document.createElement("div"); chips.className = "pv-chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "סינון לפי שכבה");
+    [""].concat(order).forEach(function (g) {
+      var c = document.createElement("button"); c.type = "button"; c.className = "chip" + (g === "" ? " on" : "");
+      c.textContent = g === "" ? "הכל" : g; c.dataset.g = g;
+      if (g !== "") { var n = document.createElement("small"); n.textContent = counts[g]; c.appendChild(n); }
+      c.addEventListener("click", function () {
+        grade = g;
+        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k === c); });
+        applyFilter();
+        c.scrollIntoView({ block: "nearest", inline: "nearest" });
+      });
+      chips.appendChild(c);
+    });
+    sw.appendChild(chips);
+  }
   var wrap = document.createElement("div"); wrap.className = "pv-table";
   var t = document.createElement("table");
   rows.forEach(function (r, i) {
@@ -931,15 +961,17 @@ function openPreview(d) {
   wrap.appendChild(t);
   var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
   wrap.appendChild(none);
-  si.addEventListener("input", function () {
+  function applyFilter() {
     var q = si.value, shown = 0;
     Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
-      var hit = matchesSearch(Array.prototype.map.call(tr.cells, function (c) { return c.textContent; }).join(" "), q);
+      var cells = Array.prototype.map.call(tr.cells, function (c) { return c.textContent; });
+      var hit = (!grade || norm(cells[gi]) === grade) && matchesSearch(cells.join(" "), q);
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
     wrap.scrollTop = 0;
-  });
+  }
+  si.addEventListener("input", applyFilter);
   var foot = document.createElement("div"); foot.className = "pv-foot";
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה";
   dl.addEventListener("click", function () { getFile(d); });
