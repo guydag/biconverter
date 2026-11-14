@@ -484,13 +484,6 @@ footer .version { margin-top: 4px; }
         </div>
       </section>
 
-      <section class="card install-card" id="refreshCard" hidden>
-        <div class="setting-row">
-          <div class="setting-text"><strong>רענון האתר</strong><span>טוען מחדש את הגרסה העדכנית ביותר.</span></div>
-          <button class="btn primary small" id="refreshBtn" type="button">רענון</button>
-        </div>
-      </section>
-
       <section class="card push-card" id="pushSection" hidden>
         <div class="setting-row">
           <div class="setting-text"><strong>התראות על דוחות חדשים</strong><span id="pushText">קבלו הודעה לטלפון כשעולה דוח של מפעל שמעניין אתכם.</span></div>
@@ -521,6 +514,13 @@ footer .version { margin-top: 4px; }
         <details class="note help"><summary>איך מוסיפים משתמש?</summary>כאן מנהלים שמות והרשאות. את הסיסמה יוצרים ב-<bdi dir="ltr">Firebase</bdi>, תחת <bdi dir="ltr">Authentication › Add user</bdi>, עם האימייל שיוצג אחרי ההוספה.</details>
       </div>
 
+      <section class="card install-card" id="refreshCard" hidden>
+        <div class="setting-row">
+          <div class="setting-text"><strong>רענון האתר</strong><span>טוען מחדש את הגרסה העדכנית ביותר.</span></div>
+          <button class="btn primary small" id="refreshBtn" type="button">רענון</button>
+        </div>
+      </section>
+
       <p class="note">נתקלתם בבעיה? אפשר לפנות לגיא, שמתחזק את האתר.</p>
       <p class="version" dir="ltr" data-version></p>
       </div>
@@ -550,7 +550,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:27";
+var VERSION = "v15.11 · 00:28";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
