@@ -1008,8 +1008,7 @@ function openPreview(d) {
     var g = grade, fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var sub = rows.slice(1).filter(function (r) { return norm(r[gi]) === g; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    var nm = String(d.fileName || "רשומים.xlsx"), tag = " שכבה " + g.replace(/[\\\/:*?"<>|]/g, "");
-    nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
+    var nm = String(d.fileName || "רשומים.xlsx").replace(/\.xlsx$/, "") + " (" + g.replace(/[\\\/:*?"<>|]/g, "") + ").xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
   }
   foot.appendChild(dl);
