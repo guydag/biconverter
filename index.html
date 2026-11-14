@@ -222,6 +222,18 @@ footer .version { margin-top: 4px; }
 .pv-title strong { font-size: 18px; overflow-wrap: anywhere; }
 .pv-title span { color: var(--muted); font-size: 13px; }
 .pv-head .pv-x { position: static; flex: none; }
+.saved.openable { cursor: pointer; transition: background .15s; }
+.saved.openable:hover { background: var(--accent-soft); }
+.saved.openable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.share-btn.dl-btn { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.share-btn.dl-btn:hover { filter: brightness(1.08); background: var(--accent); }
+.clearable { position: relative; width: 100%; }
+.clearable .field { padding-inline-end: 42px; }
+.clearable input::-webkit-search-cancel-button, .clearable input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+.clear-btn { position: absolute; inset-block: 0; inset-inline-end: 8px; margin: auto 0; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s, transform .15s; }
+.clear-btn[hidden] { display: none; }
+.clear-btn:hover { background: var(--accent); color: var(--accent-fg); }
+.clear-btn:active { transform: scale(.92); }
 .pv-search { padding: 10px 14px 6px; }
 .pv-search .field { margin: 0; }
 .pv-none { text-align: center; padding: 18px; }
@@ -448,7 +460,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:30";
+var VERSION = "v14.11 · 23:46";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -792,8 +804,8 @@ function renderSaved() {
   box.textContent = "";
   $("searchWrap").hidden = all.length < 4;
   if (!all.length) { st.textContent = "עדיין לא הועלו קבצים."; st.hidden = false; return; }
-  var q = ($("search").value || "").trim().toLowerCase();
-  var list = all.filter(function (x) { return !q || String(x.d.name || "").toLowerCase().indexOf(q) !== -1; });
+  var q = ($("search").value || "").trim();
+  var list = all.filter(function (x) { return matchesSearch(x.d.name, q); });
   if (!list.length) { st.textContent = "לא נמצא מפעל כזה."; st.hidden = false; return; }
   st.hidden = true;
   list.forEach(function (x) {
@@ -805,23 +817,21 @@ function renderSaved() {
     if (state.seenAt && tsMs(d.updatedAt) > state.seenAt && d.by !== state.me && !(state.dismissed && state.dismissed[x.id])) {
       var nb = document.createElement("span"); nb.className = "tag new"; nb.textContent = "חדש"; nr.appendChild(nb);
     }
-    row.addEventListener("click", function () {
+    row.classList.add("openable"); row.tabIndex = 0; row.setAttribute("role", "button"); row.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
+    function openRow() {
       var tg = row.querySelector(".tag.new");
-      if (!tg) return;
-      (state.dismissed = state.dismissed || {})[x.id] = true;
-      tg.remove();
-    });
+      if (tg) { (state.dismissed = state.dismissed || {})[x.id] = true; tg.remove(); }
+      openPreview(d);
+    }
+    row.addEventListener("click", function (e) { if (!e.target.closest("button, a")) openRow(); });
+    row.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target === row) { e.preventDefault(); openRow(); } });
     var m = document.createElement("span"); m.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
     info.appendChild(nr); info.appendChild(m);
-    var b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "הורדה";
+    var b = document.createElement("button"); b.type = "button"; b.className = "share-btn dl-btn"; b.title = "הורדה"; b.setAttribute("aria-label", "הורדת " + d.name); b.innerHTML = DL_ICON;
     b.addEventListener("click", function () {
       saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
     });
     var acts = document.createElement("div"); acts.className = "saved-actions";
-    var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
-    pv.innerHTML = EYE_ICON;
-    pv.addEventListener("click", function () { openPreview(d); });
-    acts.appendChild(pv);
     if (canShareHere()) {
       var sh = document.createElement("button"); sh.type = "button"; sh.className = "share-btn"; sh.title = "שיתוף"; sh.setAttribute("aria-label", "שיתוף " + d.name);
       sh.innerHTML = SHARE_ICON;
@@ -840,6 +850,36 @@ function renderSaved() {
   });
 }
 
+/* Forgiving search: ignores case, vowels, quotes, hyphens, final letters and word order; every typed word must appear. */
+var FINALS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
+function foldText(t) {
+  return String(t == null ? "" : t).toLowerCase()
+    .replace(/[\u0591-\u05C7]/g, "").replace(/['"׳״’‘`\-־_.,]/g, " ")
+    .replace(/[ךםןףץ]/g, function (c) { return FINALS[c]; }).replace(/\s+/g, " ").trim();
+}
+function matchesSearch(text, query) {
+  var words = foldText(query).split(" ").filter(Boolean);
+  if (!words.length) return true;
+  var hay = foldText(text);
+  return words.every(function (w) { return hay.indexOf(w) !== -1; });
+}
+var CLEAR_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+/* Wraps a search input with our own clear button (the browser's built-in one is small and not always tappable). */
+function addClearButton(input) {
+  var wrap = document.createElement("div"); wrap.className = "clearable";
+  input.parentNode.insertBefore(wrap, input); wrap.appendChild(input);
+  var b = document.createElement("button"); b.type = "button"; b.className = "clear-btn"; b.hidden = true;
+  b.setAttribute("aria-label", "ניקוי חיפוש"); b.title = "ניקוי"; b.innerHTML = CLEAR_ICON;
+  wrap.appendChild(b);
+  function sync() { b.hidden = !input.value; }
+  input.addEventListener("input", sync);
+  b.addEventListener("click", function () {
+    input.value = ""; sync();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus();
+  });
+}
+var DL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>';
 var EYE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 var previewReturn = null;
 function openPreview(d) {
@@ -863,7 +903,7 @@ function openPreview(d) {
   head.appendChild(tt); head.appendChild(x);
   var sw = document.createElement("div"); sw.className = "pv-search";
   var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
-  sw.appendChild(si);
+  sw.appendChild(si); addClearButton(si);
   var wrap = document.createElement("div"); wrap.className = "pv-table";
   var t = document.createElement("table");
   rows.forEach(function (r, i) {
@@ -875,9 +915,9 @@ function openPreview(d) {
   var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
   wrap.appendChild(none);
   si.addEventListener("input", function () {
-    var q = si.value.trim().toLowerCase(), shown = 0;
+    var q = si.value, shown = 0;
     Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
-      var hit = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      var hit = matchesSearch(Array.prototype.map.call(tr.cells, function (c) { return c.textContent; }).join(" "), q);
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
@@ -924,6 +964,7 @@ function askDelete(row, x) {
   wrap.appendChild(p); wrap.appendChild(acts);
   row.appendChild(wrap);
 }
+addClearButton($("search"));
 $("search").addEventListener("input", renderSaved);
 
 var drop = $("drop");
