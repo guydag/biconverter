@@ -477,7 +477,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:47";
+var VERSION = "v14.11 · 23:48";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1008,7 +1008,8 @@ function openPreview(d) {
     var g = grade, fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var sub = rows.slice(1).filter(function (r) { return norm(r[gi]) === g; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    var nm = String(d.fileName || "רשומים.xlsx").replace(/\.xlsx$/, "") + " (" + g.replace(/[\\\/:*?"<>|]/g, "") + ").xlsx";
+    var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + g.replace(/[\\\/:*?"<>|]/g, "") + ")";
+    nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
   }
   foot.appendChild(dl);
