@@ -529,7 +529,13 @@ async function render() {
   try {
     state.blob = await buildBlob();
     state.name = buildName(state.keywords);
-    await saveLatest(state.blob, state.name);
+    var saved = await saveLatest(state.blob, state.name);
+    if (saved === false) {
+      $("done").textContent = "";
+      $("share").hidden = true;
+      showError("כבר קיים באתר קובץ חדש יותר של המפעל הזה, לכן הקובץ הזה לא פורסם. אפשר עדיין להוריד אותו.");
+      return;
+    }
     $("done").textContent = "הקובץ פורסם באתר";
     setShare();
     loadSaved();
@@ -548,6 +554,7 @@ async function handleFile(file) {
     var out = process(readSheet(file, buf));
     state.rows = out.rows;
     state.keywords = out.keywords;
+    state.fileTime = file.lastModified || Date.now();
     state.stamp = stampNow(file.lastModified ? new Date(file.lastModified) : null);
     render();
   } catch (e) {
@@ -625,14 +632,23 @@ async function saveLatest(blob, name) {
   var key = (state.keywords || "ללא מפעל").replace(/\//g, "-");
   var data = await blobToBase64(blob);
   if (data.length > 900000) throw new Error("too-large");
-  await db.collection("factories").doc(key).set({
+  var ref = db.collection("factories").doc(key);
+  /* Only the newest file per factory is kept: an older file never replaces a newer one. */
+  var cur = await ref.get();
+  if (cur.exists) {
+    var c = cur.data(), curTime = c.fileTime || 0;
+    if ((state.fileTime || 0) < curTime) return false;
+  }
+  await ref.set({
     name: key,
+    fileTime: state.fileTime || Date.now(),
     fileName: name,
     rows: state.rows.length,
     by: auth.currentUser ? auth.currentUser.email : "",
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     data: data
   });
+  return true;
 }
 
 async function download() {
