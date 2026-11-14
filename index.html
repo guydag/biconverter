@@ -609,7 +609,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:47";
+var VERSION = "v15.11 · 01:50";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1179,7 +1179,7 @@ function openPreview(d) {
     r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
     if (freshSet[personKey(r[0], r[1], r[2])]) {
       nFresh++; tr.className = "fresh";
-      var tg = document.createElement("span"); tg.className = "newtag"; tg.textContent = "חדש"; tr.cells[0].appendChild(tg);
+      var tg = document.createElement("span"); tg.className = "newtag"; tg.textContent = "חדש"; tr.cells[Math.min(1, tr.cells.length - 1)].appendChild(tg);
     }
     tbd.appendChild(tr);
   });
