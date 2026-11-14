@@ -519,6 +519,11 @@ function fmtDate(ts) {
   if (!ts || !ts.toDate) return "";
   return new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(ts.toDate());
 }
+/* Show the same date and time that appears in the file name, so the list and the download always match. */
+function fileStamp(fileName, ts) {
+  var m = /(\d{2}\.\d{2}) (\d{2})-(\d{2})(?:\.\w+)?$/.exec(fileName || "");
+  return m ? m[1] + " " + m[2] + ":" + m[3] : fmtDate(ts);
+}
 async function loadSaved() {
   var box = $("savedList"), st = $("savedStatus");
   if (!box) return;
@@ -528,14 +533,12 @@ async function loadSaved() {
     box.textContent = "";
     if (snap.empty) { st.textContent = "עדיין לא הועלו קבצים."; return; }
     st.hidden = true;
-    var first = true;
     snap.forEach(function (doc) {
       var d = doc.data();
       var row = document.createElement("div"); row.className = "saved";
       var info = document.createElement("div"); info.className = "saved-info";
       var t = document.createElement("strong"); t.textContent = d.name;
-      if (first) { var bd = document.createElement("span"); bd.className = "badge"; bd.textContent = "העדכני ביותר"; t.appendChild(bd); first = false; }
-      var m = document.createElement("span"); m.textContent = fmtDate(d.updatedAt) + " · " + d.rows + " רשומים";
+      var m = document.createElement("span"); m.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
       info.appendChild(t); info.appendChild(m);
       var b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "הורדה";
       b.addEventListener("click", function () {
