@@ -212,6 +212,22 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 }
 .version { display: block; text-align: center; margin: 6px 0 0; font-size: 11px; color: var(--muted); opacity: .7; letter-spacing: .02em; }
 footer .version { margin-top: 4px; }
+.pv-open { overflow: hidden; }
+.pv-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(30,18,10,.45); backdrop-filter: blur(3px); opacity: 0; transition: opacity .2s ease; }
+.pv-overlay.in { opacity: 1; }
+.pv-box { width: 100%; max-width: 520px; max-height: min(86dvh, 720px); display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transform: translateY(10px) scale(.98); transition: transform .22s cubic-bezier(.2,.7,.2,1); }
+.pv-overlay.in .pv-box { transform: none; }
+.pv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+.pv-title { display: flex; flex-direction: column; min-width: 0; }
+.pv-title strong { font-size: 18px; overflow-wrap: anywhere; }
+.pv-title span { color: var(--muted); font-size: 13px; }
+.pv-head .pv-x { position: static; flex: none; }
+.pv-table { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.pv-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.pv-table th { position: sticky; top: 0; background: var(--surface); text-align: start; font-size: 13px; color: var(--muted); font-weight: 600; padding: 9px 18px; border-bottom: 1px solid var(--line); }
+.pv-table td { padding: 8px 18px; border-bottom: 1px solid var(--line); }
+.pv-table tr:last-child td { border-bottom: 0; }
+.pv-foot { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-start; }
 .help summary { cursor: pointer; font-weight: 600; }
 .help { margin: 0; }
 
@@ -428,7 +444,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:10";
+var VERSION = "v14.11 · 23:25";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -798,6 +814,10 @@ function renderSaved() {
       saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
     });
     var acts = document.createElement("div"); acts.className = "saved-actions";
+    var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
+    pv.innerHTML = EYE_ICON;
+    pv.addEventListener("click", function () { openPreview(d); });
+    acts.appendChild(pv);
     if (canShareHere()) {
       var sh = document.createElement("button"); sh.type = "button"; sh.className = "share-btn"; sh.title = "שיתוף"; sh.setAttribute("aria-label", "שיתוף " + d.name);
       sh.innerHTML = SHARE_ICON;
@@ -816,6 +836,58 @@ function renderSaved() {
   });
 }
 
+var EYE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var previewReturn = null;
+function openPreview(d) {
+  closePreview(true);
+  var rows;
+  try {
+    var wb = XLSX.read(d.data, { type: "base64" });
+    rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
+  } catch (e) { showError("לא הצלחנו לפתוח את התצוגה המקדימה."); return; }
+  previewReturn = document.activeElement;
+  var ov = document.createElement("div"); ov.className = "pv-overlay"; ov.id = "pvOverlay";
+  var box = document.createElement("div"); box.className = "pv-box"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "תצוגה מקדימה");
+  var head = document.createElement("div"); head.className = "pv-head";
+  var tt = document.createElement("div"); tt.className = "pv-title";
+  var h = document.createElement("strong"); h.textContent = d.name;
+  var sub = document.createElement("span"); sub.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
+  tt.appendChild(h); tt.appendChild(sub);
+  var x = document.createElement("button"); x.type = "button"; x.className = "close-x pv-x"; x.setAttribute("aria-label", "סגירה"); x.title = "סגירה";
+  x.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  x.addEventListener("click", function () { closePreview(); });
+  head.appendChild(tt); head.appendChild(x);
+  var wrap = document.createElement("div"); wrap.className = "pv-table";
+  var t = document.createElement("table");
+  rows.forEach(function (r, i) {
+    var tr = document.createElement("tr");
+    r.forEach(function (c) { var cell = document.createElement(i === 0 ? "th" : "td"); cell.textContent = c; tr.appendChild(cell); });
+    (i === 0 ? (t.tHead || t.createTHead()) : (t.tBodies[0] || t.createTBody())).appendChild(tr);
+  });
+  wrap.appendChild(t);
+  var foot = document.createElement("div"); foot.className = "pv-foot";
+  var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = "הורדה";
+  dl.addEventListener("click", function () { saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {}); });
+  foot.appendChild(dl);
+  box.appendChild(head); box.appendChild(wrap); box.appendChild(foot);
+  ov.appendChild(box);
+  ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
+  document.body.appendChild(ov);
+  document.documentElement.classList.add("pv-open");
+  requestAnimationFrame(function () { ov.classList.add("in"); });
+  x.focus();
+}
+function closePreview(instant) {
+  var ov = $("pvOverlay");
+  if (!ov) return;
+  document.documentElement.classList.remove("pv-open");
+  var back = previewReturn; previewReturn = null;
+  if (instant) { ov.remove(); return; }
+  ov.classList.remove("in");
+  setTimeout(function () { ov.remove(); }, 200);
+  if (back && back.focus) try { back.focus(); } catch (e) {}
+}
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePreview(); });
 /* Deleting asks for confirmation inside the row (browser dialogs are not available). */
 function askDelete(row, x) {
   row.textContent = "";
