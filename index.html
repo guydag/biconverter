@@ -524,7 +524,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:08";
+var VERSION = "v15.11 · 00:10";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1066,12 +1066,12 @@ function openPreview(d) {
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
     /* Every grade selected is the same as no filter: the regular, full file. */
-    if (!grades.length || grades.length >= order.length) { hint.textContent = "סה\u05F4כ " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
+    if (!grades.length || grades.length >= order.length) { hint.textContent = "סה\u05F4כ: " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
     var gs = order.filter(function (g) { return grades.indexOf(g) !== -1; });
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var sub = rows.slice(1).filter(function (r) { return gs.indexOf(norm(r[gi])) !== -1; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    hint.textContent = "בקובץ: " + sub.length + " רשומים משכבות " + gs.join(", ");
+    hint.textContent = "בקובץ: " + sub.length + " רשומים " + (gs.length === 1 ? "משכבה " : "משכבות ") + gs.join(", ");
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
     var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
