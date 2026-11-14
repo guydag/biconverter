@@ -466,7 +466,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:58";
+var VERSION = "v14.11 · 00:05";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -846,7 +846,7 @@ function renderSaved() {
     row.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target === row) { e.preventDefault(); openRow(); } });
     var m = document.createElement("span"); m.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
     info.appendChild(nr); info.appendChild(m);
-    var b = document.createElement("button"); b.type = "button"; b.className = "share-btn dl-btn"; b.title = "הורדה"; b.setAttribute("aria-label", "הורדת " + d.name); b.innerHTML = DL_ICON;
+    var b = document.createElement("button"); b.type = "button"; b.className = "share-btn dl-btn"; var phone = canShareHere(); b.title = phone ? "שיתוף" : "הורדה"; b.setAttribute("aria-label", (phone ? "שיתוף " : "הורדת ") + d.name); b.innerHTML = phone ? SHARE_ICON : DL_ICON;
     b.addEventListener("click", function () {
       getFile(d);
     });
@@ -941,7 +941,7 @@ function openPreview(d) {
     wrap.scrollTop = 0;
   });
   var foot = document.createElement("div"); foot.className = "pv-foot";
-  var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = "הורדה";
+  var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה";
   dl.addEventListener("click", function () { getFile(d); });
   foot.appendChild(dl);
   box.appendChild(head); box.appendChild(sw); box.appendChild(wrap); box.appendChild(foot);
