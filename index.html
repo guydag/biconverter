@@ -172,8 +172,8 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
       </header>
       <form class="card login" id="loginForm" novalidate>
         <div>
-          <label class="label" for="user">אימייל</label>
-          <input class="field" id="user" name="email" type="email" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false">
+          <label class="label" for="user">שם משתמש</label>
+          <input class="field" id="user" name="username" type="text" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false">
         </div>
         <div>
           <label class="label" for="pass">סיסמה</label>
@@ -668,13 +668,18 @@ firebase.initializeApp({
 auth = firebase.auth();
 db = firebase.firestore();
 
+/* Firebase signs in with an email, so a plain user name gets a fixed internal domain added. */
+function loginId(v) {
+  v = (v || "").trim().toLowerCase();
+  return v && v.indexOf("@") === -1 ? v + "@masuot.app" : v;
+}
 $("loginForm").addEventListener("submit", async function (ev) {
   ev.preventDefault();
   $("loginError").hidden = true;
-  var email = $("user").value.trim();
+  var email = loginId($("user").value);
   var pw = $("pass").value;
   var btn = $("loginBtn");
-  if (!email || !pw) { loginError("יש להזין אימייל וסיסמה."); return; }
+  if (!email || !pw) { loginError("יש להזין שם משתמש וסיסמה."); return; }
   btn.disabled = true;
   try {
     var P = firebase.auth.Auth.Persistence;
@@ -683,7 +688,7 @@ $("loginForm").addEventListener("submit", async function (ev) {
     $("pass").value = "";
   } catch (e) {
     var bad = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"];
-    if (bad.indexOf(e.code) !== -1) loginError("האימייל או הסיסמה שגויים.");
+    if (bad.indexOf(e.code) !== -1) loginError("שם המשתמש או הסיסמה שגויים.");
     else if (e.code === "auth/too-many-requests") loginError("יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.");
     else if (e.code === "auth/network-request-failed") loginError("אין חיבור לאינטרנט.");
     else loginError("הכניסה לא הצליחה. נסו שוב.");
