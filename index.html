@@ -276,7 +276,7 @@ footer .version { margin-top: 4px; }
 .install-banner { position: relative; display: flex; align-items: center; gap: 12px; background: var(--accent-soft); border-radius: 16px; padding: 12px 14px 12px 44px; }
 .ib-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .ib-text strong { font-size: 15px; } .ib-text span { font-size: 13px; color: var(--muted); }
-.install-banner .ib-x { position: absolute; top: 8px; inset-inline-start: 8px; width: 26px; height: 26px; background: transparent; }
+.install-banner .ib-x { position: absolute; top: 50%; transform: translateY(-50%); left: 8px; right: auto; width: 26px; height: 26px; background: transparent; }
 .ih-steps { margin: 0; padding: 0 18px; list-style: none; counter-reset: s; display: grid; gap: 14px; }
 .ih-steps li { counter-increment: s; display: flex; gap: 12px; align-items: center; font-size: 16px; }
 .ih-steps li::before { content: counter(s); flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
@@ -550,7 +550,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:36";
+var VERSION = "v15.11 · 00:40";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1363,7 +1363,7 @@ function openInstallHelp() {
   var body = document.createElement("div"); body.className = "ih-body";
   var ol = document.createElement("ol"); ol.className = "ih-steps";
   var steps = ios
-    ? ["לוחצים על כפתור השיתוף " + SHARE_ICON + " בתחתית המסך", "בוחרים \u201Cהוספה למסך הבית\u201D", "לוחצים \u201Cהוספה\u201D, ופותחים את האתר מהאייקון החדש"]
+    ? ["לוחצים על כפתור השיתוף " + SHARE_ICON + " (או על ≡ בסרגל הכתובות, ואז “שיתוף”)", "בוחרים \u201Cהוספה למסך הבית\u201D", "לוחצים \u201Cהוספה\u201D, ופותחים את האתר מהאייקון החדש"]
     : ["לוחצים על תפריט הדפדפן (שלוש נקודות) בפינה", "בוחרים \u201Cהתקנת אפליקציה\u201D או \u201Cהוספה למסך הבית\u201D", "מאשרים, ופותחים את האתר מהאייקון החדש"];
   steps.forEach(function (t) { var li = document.createElement("li"); var sp = document.createElement("span"); sp.innerHTML = t; li.appendChild(sp); ol.appendChild(li); });
   body.appendChild(ol);
