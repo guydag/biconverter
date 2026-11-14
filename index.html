@@ -477,7 +477,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:48";
+var VERSION = "v14.11 · 23:50";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -885,6 +885,13 @@ function renderSaved() {
 
 /* Forgiving search: ignores case, vowels, quotes, hyphens, final letters and word order; every typed word must appear. */
 var FINALS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
+/* A brief fade so filtered results ease in instead of snapping. */
+function softSwap(el) {
+  try {
+    if (!el.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+    el.animate([{ opacity: .45 }, { opacity: 1 }], { duration: 160, easing: "ease-out" });
+  } catch (e) {}
+}
 function foldText(t) {
   return String(t == null ? "" : t).toLowerCase()
     .replace(/[\u0591-\u05C7]/g, "").replace(/['"׳״’‘`\-־_.,]/g, " ")
@@ -990,6 +997,7 @@ function openPreview(d) {
     });
     none.hidden = shown > 0;
     wrap.scrollTop = 0;
+    softSwap(wrap);
   }
   si.addEventListener("input", applyFilter);
   var foot = document.createElement("div"); foot.className = "pv-foot";
@@ -1018,6 +1026,8 @@ function openPreview(d) {
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
   document.body.appendChild(ov);
   document.documentElement.classList.add("pv-open");
+  /* Freeze the window at its full-table height so filtering never makes it jump in size. */
+  box.style.height = box.offsetHeight + "px";
   void ov.offsetWidth; /* commit the starting state so the entrance really animates */
   ov.classList.add("in");
   /* No auto-focus on touch screens: the keyboard would pop up and shove the window while it opens. */
@@ -1054,7 +1064,12 @@ function askDelete(row, x) {
   row.appendChild(wrap);
 }
 addClearButton($("search"));
-$("search").addEventListener("input", renderSaved);
+$("search").addEventListener("input", function () {
+  var l = $("savedList"), v = $("search").value;
+  if (v && !l.dataset.locked) { l.dataset.locked = "1"; l.style.minHeight = l.offsetHeight + "px"; }
+  if (!v) { delete l.dataset.locked; l.style.minHeight = ""; }
+});
+$("search").addEventListener("input", function () { renderSaved(); softSwap($("savedList")); });
 
 var drop = $("drop");
 $("file").addEventListener("change", function (e) { handleFile(e.target.files[0]); e.target.value = ""; });
