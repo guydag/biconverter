@@ -1,11 +1,12 @@
 # biconverter
 ## התראות לטלפון
 
-הקוד של ההתראות נמצא ב-`functions/` (שרת קטן של Firebase) ובאתר עצמו (הגדרות ← התראות, מוצג רק בטלפון).
+הקוד נמצא באתר עצמו (הגדרות ← התראות, מוצג רק בטלפון) וב-`scripts/notify.js`, שרץ בחינם ב-GitHub Actions כל כמה דקות (`.github/workflows/notify.yml`) ושולח את ההתראות דרך Firebase Cloud Messaging.
 
 להפעלה, פעם אחת:
 
-1. ב-Firebase: שדרוג התוכנית ל-Blaze (נדרש בשביל Cloud Functions).
-2. בחוקי Firestore להוסיף: `match /subs/{email} { allow read, write: if request.auth != null && request.auth.token.email == email; }`
-3. מתוך תיקיית הפרויקט: `npx firebase-tools login` ואז `npx firebase-tools deploy --only functions`.
-4. ב-`index.html` לשנות `PUSH_ENABLED` ל-`true`.
+1. ב-Firebase: Project settings ← Service accounts ← Generate new private key. יורד קובץ JSON.
+2. ב-GitHub, במאגר: Settings ← Secrets and variables ← Actions ← New repository secret בשם `FIREBASE_SERVICE_ACCOUNT`, ולהדביק את כל תוכן הקובץ.
+3. ב-`index.html` לשנות `PUSH_ENABLED` ל-`true`.
+
+ההרצה הראשונה רק רושמת את הדוחות הקיימים ולא שולחת כלום.

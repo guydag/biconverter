@@ -1,0 +1,6 @@
+{
+  "name": "masuot-notify",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": { "firebase-admin": "^12.0.0" }
+}
