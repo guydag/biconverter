@@ -253,8 +253,11 @@ footer .version { margin-top: 4px; }
 .pv-none { text-align: center; padding: 18px; }
 .pv-table tr[hidden] { display: none; }
 .pv-table { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
-.pv-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
-.pv-table th { position: sticky; top: 0; background: var(--surface); text-align: start; font-size: 13px; color: var(--muted); font-weight: 600; padding: 9px 18px; border-bottom: 1px solid var(--line); }
+.pv-table table, .pv-headrow table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 15px; }
+.pv-headrow { overflow: hidden; scrollbar-gutter: stable; border-bottom: 1px solid var(--line); flex: none; }
+.pv-table { scrollbar-gutter: stable; }
+.pv-table td { overflow-wrap: anywhere; }
+.pv-headrow th { background: transparent; border: 0; text-align: start; font-size: 13px; color: var(--muted); font-weight: 600; padding: 9px 18px; }
 .pv-table td { padding: 8px 18px; border-bottom: 1px solid var(--line); }
 .pv-table tr:last-child td { border-bottom: 0; }
 .pv-foot { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-start; }
@@ -474,7 +477,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:22";
+var VERSION = "v15.11 · 00:35";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -952,11 +955,23 @@ function openPreview(d) {
     sw.appendChild(chips);
   }
   var wrap = document.createElement("div"); wrap.className = "pv-table";
-  var t = document.createElement("table");
-  rows.forEach(function (r, i) {
+  /* The header is its own non-scrolling table above the list, so it never overlaps the rows (sticky headers misbehave on iOS). */
+  var cols = rows.length ? rows[0].length : 0;
+  var widths = cols === 3 ? [38, 38, 24] : Array.apply(null, Array(cols)).map(function () { return 100 / cols; });
+  function mkTable() {
+    var tb = document.createElement("table"), cg = document.createElement("colgroup");
+    widths.forEach(function (w) { var c = document.createElement("col"); c.style.width = w + "%"; cg.appendChild(c); });
+    tb.appendChild(cg); return tb;
+  }
+  var headRow = document.createElement("div"); headRow.className = "pv-headrow";
+  var ht = mkTable(), hb = ht.createTBody(), htr = document.createElement("tr");
+  (rows[0] || []).forEach(function (c) { var th = document.createElement("th"); th.textContent = c; htr.appendChild(th); });
+  hb.appendChild(htr); headRow.appendChild(ht);
+  var t = mkTable(), tbd = t.createTBody();
+  rows.slice(1).forEach(function (r) {
     var tr = document.createElement("tr");
-    r.forEach(function (c) { var cell = document.createElement(i === 0 ? "th" : "td"); cell.textContent = c; tr.appendChild(cell); });
-    (i === 0 ? (t.tHead || t.createTHead()) : (t.tBodies[0] || t.createTBody())).appendChild(tr);
+    r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+    tbd.appendChild(tr);
   });
   wrap.appendChild(t);
   var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
@@ -976,7 +991,7 @@ function openPreview(d) {
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה";
   dl.addEventListener("click", function () { getFile(d); });
   foot.appendChild(dl);
-  box.appendChild(head); box.appendChild(sw); box.appendChild(wrap); box.appendChild(foot);
+  box.appendChild(head); box.appendChild(sw); box.appendChild(headRow); box.appendChild(wrap); box.appendChild(foot);
   ov.appendChild(box);
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
   document.body.appendChild(ov);
