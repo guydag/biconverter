@@ -526,7 +526,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:11";
+var VERSION = "v15.11 · 00:13";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1065,6 +1065,17 @@ function openPreview(d) {
     try { over = await ready; } catch (e) {}
     getFile(d, over || undefined);
   });
+  /* Display form of grades: ח׳, י״א; runs of three or more consecutive grades become a range (ט׳-י״א). */
+  function gradeText(gs) {
+    function fmt(g) { var k = stripQ(norm(g)).replace(/^כיתה\s*/, ""); if (!/^[א-ת]{1,2}$/.test(k)) return g; return k.length === 1 ? k + "\u05F3" : k[0] + "\u05F4" + k[1]; }
+    var idx = gs.map(function (g) { return order.indexOf(g); }), out = [], i = 0;
+    while (i < gs.length) {
+      var j = i; while (j + 1 < gs.length && idx[j + 1] === idx[j] + 1) j++;
+      if (j - i >= 2) out.push(fmt(gs[i]) + "-" + fmt(gs[j])); else for (var m = i; m <= j; m++) out.push(fmt(gs[m]));
+      i = j + 1;
+    }
+    return out.join(", ");
+  }
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
     /* Every grade selected is the same as no filter: the regular, full file. */
@@ -1073,7 +1084,7 @@ function openPreview(d) {
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var sub = rows.slice(1).filter(function (r) { return gs.indexOf(norm(r[gi])) !== -1; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    hint.textContent = "בקובץ: " + sub.length + " רשומים " + (gs.length === 1 ? "משכבת " : "משכבות ") + gs.join(", ");
+    hint.textContent = "בקובץ: " + sub.length + " רשומים " + (gs.length === 1 ? "משכבת " : "משכבות ") + gradeText(gs);
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
     var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
