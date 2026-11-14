@@ -442,7 +442,7 @@ route();
 /* Login gate. Only salted PBKDF2 hashes are stored; there is no registration.
    This runs in the browser, so it keeps casual visitors out but is not server-side security. */
 var AUTH_KEY = "mishuot-auth";
-var USERS = [{ u: "guydagan", salt: "963c12851ecf15bc2f9dbd689c97b753", hash: "fecd7f1f44589adccaa4400f58bbfee4a0b2c7e21c8e1e0418662090f2edddeb", iter: 200000 }];
+var USERS = [{ u: "guyda", salt: "e1d8ac75893daa8cfdcb0653ebb82792", hash: "420afa3b6bdb0235ac8890151b40fd42168cb3c96c84da73d0e33acef6f1ad43", iter: 200000 }];
 
 function toHex(buf) {
   return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
