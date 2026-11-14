@@ -682,9 +682,6 @@ async function shareSaved(d) {
   window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
 }
 var DEL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
-function seenKey() { return "seen:" + ((auth.currentUser && auth.currentUser.email) || ""); }
-function readSeen() { try { var v = localStorage.getItem(seenKey()); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
-function writeSeen(map) { try { localStorage.setItem(seenKey(), JSON.stringify(map)); } catch (e) {} }
 function tsMs(t) { return t && t.toMillis ? t.toMillis() : 0; }
 
 async function loadSaved() {
@@ -695,11 +692,12 @@ async function loadSaved() {
     var snap = await db.collection("factories").orderBy("updatedAt", "desc").get();
     state.saved = [];
     snap.forEach(function (doc) { state.saved.push({ id: doc.id, d: doc.data() }); });
-    /* "New" means changed since this browser last looked. The first ever visit marks nothing. */
-    state.seen = readSeen();
-    var next = {};
-    state.saved.forEach(function (x) { next[x.id] = tsMs(x.d.updatedAt); });
-    writeSeen(next);
+    /* "New" = uploaded by someone else after this user's last visit, stored on the server per user.
+       A user with no recorded visit sees nothing marked. */
+    var me = auth.currentUser, ref = me && db.collection("users").doc(me.email);
+    state.seenAt = 0; state.me = me ? me.email : "";
+    try { var u = await ref.get(); if (u.exists) state.seenAt = tsMs(u.data().lastSeen); } catch (e) {}
+    if (ref) ref.set({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(function () {});
     renderSaved();
   } catch (e) {
     st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
@@ -722,7 +720,7 @@ function renderSaved() {
     var info = document.createElement("div"); info.className = "saved-info";
     var t = document.createElement("strong"); t.textContent = d.name;
     var nr = document.createElement("div"); nr.className = "name-row"; nr.appendChild(t);
-    if (state.seen && !(state.seen[x.id] >= tsMs(d.updatedAt))) {
+    if (state.seenAt && tsMs(d.updatedAt) > state.seenAt && d.by !== state.me) {
       var nb = document.createElement("span"); nb.className = "tag new"; nb.textContent = "חדש"; nr.appendChild(nb);
     }
     var m = document.createElement("span"); m.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
