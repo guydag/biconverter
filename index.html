@@ -85,6 +85,23 @@ footer { margin-top: auto; }
 }
 @media (max-height: 700px) { .lead { display: none; } footer { display: none; } }
 #usersList { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+@media (max-height: 950px) {
+  .result { padding: 14px 12px 12px; gap: 8px; }
+  .result .icon { width: 44px; height: 44px; }
+  .result h2 { margin: 0 0 4px; font-size: 19px; }
+  .result .btn { padding-block: 9px; }
+  .status { min-height: 0; margin: 0; }
+  .drop { padding-block: 22px; }
+}
+@media (max-height: 700px) { #viewMain:has(#uploadCard:not([hidden])) .head { display: none; } }
+#viewSettings { flex: 1 1 auto; min-height: 0; }
+.settings-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: inherit; margin: 0 -8px; padding: 4px 8px 8px; }
+#usersList { max-height: none; }
+/* While a file is being uploaded the page header shrinks so nothing spills past the screen. */
+#viewMain:has(#uploadCard:not([hidden])) .lead, #viewMain:has(#uploadCard:not([hidden])) footer { display: none; }
+#viewMain:has(#uploadCard:not([hidden])) #savedCard { min-height: 0; }
+@media (max-height: 950px) { #viewMain:has(#uploadCard:not([hidden])) .logo { display: none; } }
+
 
 .head { text-align: center; display: flex; flex-direction: column; align-items: center; }
 .logo { width: 116px; height: 116px; border-radius: 50%; background: #fff; object-fit: cover; box-shadow: 0 0 0 5px var(--surface), 0 10px 28px rgba(120,70,30,.22); }
@@ -341,6 +358,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
       <header class="head sub">
         <h1>הגדרות</h1>
       </header>
+      <div class="settings-body" id="settingsBody">
 
       <section class="card setting-card">
         <div class="setting-row">
@@ -367,6 +385,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
       </div>
 
       <p class="note">נתקלתם בבעיה? אפשר לפנות לגיא, שמתחזק את האתר.</p>
+      </div>
     </div>
   </main>
 </div>
@@ -720,9 +739,15 @@ function renderSaved() {
     var info = document.createElement("div"); info.className = "saved-info";
     var t = document.createElement("strong"); t.textContent = d.name;
     var nr = document.createElement("div"); nr.className = "name-row"; nr.appendChild(t);
-    if (state.seenAt && tsMs(d.updatedAt) > state.seenAt && d.by !== state.me) {
+    if (state.seenAt && tsMs(d.updatedAt) > state.seenAt && d.by !== state.me && !(state.dismissed && state.dismissed[x.id])) {
       var nb = document.createElement("span"); nb.className = "tag new"; nb.textContent = "חדש"; nr.appendChild(nb);
     }
+    row.addEventListener("click", function () {
+      var tg = row.querySelector(".tag.new");
+      if (!tg) return;
+      (state.dismissed = state.dismissed || {})[x.id] = true;
+      tg.remove();
+    });
     var m = document.createElement("span"); m.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
     info.appendChild(nr); info.appendChild(m);
     var b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "הורדה";
