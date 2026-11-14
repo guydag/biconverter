@@ -112,6 +112,8 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .saved-info { display: flex; flex-direction: column; min-width: 0; }
 .saved-info strong { font-size: 16px; overflow-wrap: anywhere; }
 .saved-info span { color: var(--muted); font-size: 13px; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--muted); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
 .btn.small { width: auto; padding: 8px 18px; font-size: 15px; flex: none; }
 #savedStatus { padding: 16px; text-align: center; }
 [hidden] { display: none !important; }
@@ -140,6 +142,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
           <label class="label" for="pass">סיסמה</label>
           <input class="field" id="pass" name="password" type="password" dir="ltr" autocomplete="current-password">
         </div>
+        <label class="check" for="remember"><input type="checkbox" id="remember" checked> זכור אותי במכשיר הזה</label>
         <div class="error" id="loginError" role="alert" hidden></div>
         <button class="btn primary" id="loginBtn" type="submit">כניסה</button>
       </form>
@@ -445,7 +448,10 @@ async function download() {
     await saveBlob(blob, name);
     var msg = "הקובץ נשמר";
     try { await saveLatest(blob, name); msg += ", והגרסה העדכנית נשמרה במערכת"; }
-    catch (e) { msg += ", אך לא הצלחנו לשמור אותו במערכת"; }
+    catch (e) {
+      if (e && e.code === "permission-denied") msg += ". השמירה במערכת מותרת רק למשתמשים מורשים";
+      else msg += ", אך לא הצלחנו לשמור אותו במערכת";
+    }
     $("done").textContent = msg;
   } catch (e) {
     if (e && e.code === "declined") { /* viewer chose not to save */ }
@@ -559,6 +565,8 @@ $("loginForm").addEventListener("submit", async function (ev) {
   if (!email || !pw) { loginError("יש להזין אימייל וסיסמה."); return; }
   btn.disabled = true;
   try {
+    var P = firebase.auth.Auth.Persistence;
+    await auth.setPersistence($("remember").checked ? P.LOCAL : P.SESSION);
     await auth.signInWithEmailAndPassword(email, pw);
     $("pass").value = "";
   } catch (e) {
