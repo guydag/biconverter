@@ -743,10 +743,10 @@ async function loadSaved() {
     snap.forEach(function (doc) { state.saved.push({ id: doc.id, d: doc.data() }); });
     /* "New" = uploaded by someone else after this user's last visit, stored on the server per user.
        A user with no recorded visit sees nothing marked. */
-    var me = auth.currentUser, ref = me && db.collection("users").doc(me.email);
+    var me = auth.currentUser, ref = me && db.collection("seen").doc((me.email || "").toLowerCase());
     state.seenAt = 0; state.me = me ? me.email : "";
-    try { var u = await ref.get(); if (u.exists) state.seenAt = tsMs(u.data().lastSeen); } catch (e) {}
-    if (ref) ref.set({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(function () {});
+    try { var u = await ref.get(); if (u.exists) state.seenAt = tsMs(u.data().at); } catch (e) {}
+    if (ref) ref.set({ at: firebase.firestore.FieldValue.serverTimestamp() }).catch(function () {});
     renderSaved();
   } catch (e) {
     st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
