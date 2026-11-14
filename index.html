@@ -560,6 +560,14 @@ function fileStamp(fileName, ts) {
 }
 var SHARE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M12 3L8 7M12 3l4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
 /* Share the actual file where the device supports it (phones); otherwise open WhatsApp with a short message and the site link. */
+/* The share button is for phones and tablets that can share files; it is left out on computers. */
+function canShareHere() {
+  try {
+    if (!window.matchMedia("(pointer: coarse)").matches) return false;
+    var f = new File(["x"], "a.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    return !!(navigator.canShare && navigator.canShare({ files: [f] }));
+  } catch (e) { return false; }
+}
 async function shareSaved(d) {
   var blob = base64ToBlob(d.data);
   try {
@@ -598,7 +606,8 @@ async function loadSaved() {
       sh.innerHTML = SHARE_ICON;
       sh.addEventListener("click", function () { shareSaved(d); });
       var acts = document.createElement("div"); acts.className = "saved-actions";
-      acts.appendChild(sh); acts.appendChild(b);
+      if (canShareHere()) acts.appendChild(sh);
+      acts.appendChild(b);
       row.appendChild(info); row.appendChild(acts);
       box.appendChild(row);
     });
