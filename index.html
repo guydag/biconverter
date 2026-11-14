@@ -47,12 +47,12 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --bg: #26272b; --surface: #303136; --fg: #ececee; --muted: #a5a7ae; --line: #41434a; --wash: #2d2e33;
-  --accent: #ff9a5c; --accent-fg: #2a1304; --accent-soft: #44352b;
-  --warm-soft: #3a3322; --warm-fg: #f7d56a;
-  --ok: #5fd09a; --ok-soft: #1f3329; --err: #ff8f86; --err-soft: #3a2426;
+  --bg: #1f2430; --surface: #2a3040; --fg: #e9ecf3; --muted: #9fa8ba; --line: #3a4256; --wash: #262c3b;
+  --accent: #ffa05f; --accent-fg: #2a1304; --accent-soft: #44372f;
+  --warm-soft: #3a3626; --warm-fg: #f7d56a;
+  --ok: #5fd09a; --ok-soft: #1f3a33; --err: #ff8f86; --err-soft: #3d2530;
   --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.3);
-  --drop-line: #55565e; --veil: rgba(38,39,43,.88);
+  --drop-line: #4f5870; --veil: rgba(31,36,48,.88);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -1422,7 +1422,7 @@ $("darkSwitch").addEventListener("click", function () {
   var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   try { localStorage.setItem("theme", next); } catch (e) {}
-  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = next === "dark" ? "#26272b" : "#fffaf3";
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = next === "dark" ? "#1f2430" : "#fffaf3";
   syncSwitch();
 });
 syncSwitch();
