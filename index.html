@@ -13,8 +13,10 @@
   .result .btn { padding-block: 9px; }
   .status { min-height: 0; margin: 0; }
 }
-.pv-table tr.fresh td { background: var(--accent-soft); }
-.newtag { display: inline-block; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; }
+.pv-table.marks tr.fresh td { background: var(--accent-soft); }
+.pv-table.marks td.newcell::after { content: "חדש"; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; display: inline-block; }
+.chip.chip-new { border-style: dashed; }
+.newtag-unused { display: inline-block; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; }
 </style>
 <title>רשומי משואות</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -609,7 +611,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:50";
+var VERSION = "v15.11 · 01:54";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1134,23 +1136,31 @@ function openPreview(d) {
   var sw = document.createElement("div"); sw.className = "pv-search";
   var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
   sw.appendChild(si); addClearButton(si);
+  var freshSet = {}, nFresh = 0, newOnly = false;
+  var freshKey = "freshSeen:" + (state.me || "") + ":" + d.name, freshStamp = String(tsMs(d.updatedAt)), marks = false;
+  try { marks = localStorage.getItem(freshKey) !== freshStamp; } catch (e) { marks = true; }
+  (Array.isArray(d.fresh) ? d.fresh : []).forEach(function (k) { freshSet[k] = true; });
+  rows.slice(1).forEach(function (r) { if (freshSet[personKey(r[0], r[1], r[2])]) nFresh++; });
   var gi = rows.length ? rows[0].indexOf("שכבה") : -1;
   if (gi === -1 && rows.length && rows[0].length > 1) gi = rows[0].length - 1;
   var grades = [], chips = null;
   var counts = {}, order = [];
   if (gi !== -1) rows.slice(1).forEach(function (r) { var g = norm(r[gi]); if (!g) return; if (!(g in counts)) { counts[g] = 0; order.push(g); } counts[g]++; });
   order.sort(function (a, b) { return gradeIndex(a) - gradeIndex(b) || a.localeCompare(b, "he"); });
-  if (order.length > 1) {
+  if (order.length > 1 || nFresh) {
     chips = document.createElement("div"); chips.className = "pv-chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "סינון לפי שכבה");
-    [""].concat(order).forEach(function (g) {
+    [""].concat(order.length > 1 ? order : []).concat(nFresh ? ["\u0000new"] : []).forEach(function (g) {
       var c = document.createElement("button"); c.type = "button"; c.className = "chip" + (g === "" ? " on" : "");
-      c.textContent = g === "" ? "הכל" : g; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
-      if (g !== "") { var n = document.createElement("small"); n.textContent = counts[g]; c.appendChild(n); }
+      var isNew = g === "\u0000new";
+      c.textContent = g === "" ? "הכל" : isNew ? "חדשים" : g; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
+      if (isNew) c.classList.add("chip-new");
+      if (g !== "") { var n = document.createElement("small"); n.textContent = isNew ? nFresh : counts[g]; c.appendChild(n); }
       c.addEventListener("click", function () {
         /* "הכל" clears the selection; a grade toggles on and off, and several can be on together. */
-        if (g === "") grades = [];
+        if (g === "") { grades = []; newOnly = false; }
+        else if (isNew) newOnly = !newOnly;
         else { var i = grades.indexOf(g); if (i === -1) grades.push(g); else grades.splice(i, 1); }
-        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k.dataset.g === "" ? !grades.length : grades.indexOf(k.dataset.g) !== -1); k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false"); });
+        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k.dataset.g === "" ? !grades.length && !newOnly : k.dataset.g === "\u0000new" ? newOnly : grades.indexOf(k.dataset.g) !== -1); k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false"); });
         applyFilter(); prepareGrade();
         c.scrollIntoView({ block: "nearest", inline: "nearest" });
       });
@@ -1172,18 +1182,18 @@ function openPreview(d) {
   (rows[0] || []).forEach(function (c) { var th = document.createElement("th"); th.textContent = c; htr.appendChild(th); });
   hb.appendChild(htr); headRow.appendChild(ht);
   var t = mkTable(), tbd = t.createTBody();
-  var freshSet = {}, nFresh = 0;
-  (Array.isArray(d.fresh) ? d.fresh : []).forEach(function (k) { freshSet[k] = true; });
   rows.slice(1).forEach(function (r) {
     var tr = document.createElement("tr");
     r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
     if (freshSet[personKey(r[0], r[1], r[2])]) {
-      nFresh++; tr.className = "fresh";
-      var tg = document.createElement("span"); tg.className = "newtag"; tg.textContent = "חדש"; tr.cells[Math.min(1, tr.cells.length - 1)].appendChild(tg);
+      tr.className = "fresh";
+      tr.cells[Math.min(1, tr.cells.length - 1)].className = "newcell";
     }
     tbd.appendChild(tr);
   });
   wrap.appendChild(t);
+  wrap.classList.toggle("marks", marks && nFresh > 0);
+  pvFreshKey = nFresh ? [freshKey, freshStamp] : null;
   var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
   wrap.appendChild(none);
   var total = rows.length ? rows.length - 1 : 0;
@@ -1192,15 +1202,17 @@ function openPreview(d) {
     var q = si.value, shown = 0;
     Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
       var cells = Array.prototype.map.call(tr.cells, function (c) { return c.textContent; });
-      var hit = (!grades.length || grades.indexOf(norm(cells[gi])) !== -1) && matchesSearch(cells.join(" "), q);
+      var hit = (!grades.length || grades.indexOf(norm(cells[gi])) !== -1) && (!newOnly || tr.classList.contains("fresh")) && matchesSearch(cells.join(" "), q);
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
-    count.textContent = (si.value.trim() || grades.length) ? shown + " מתוך " + total + " רשומים" : (nFresh ? nFresh + (nFresh === 1 ? " רשום חדש" : " רשומים חדשים") + " מהדוח הקודם" : "");
+    count.textContent = (si.value.trim() || grades.length || newOnly) ? shown + " מתוך " + total + " רשומים" : (marks && nFresh ? freshLine() : "");
+    wrap.classList.toggle("marks", (marks || newOnly) && nFresh > 0);
     wrap.scrollTop = 0;
     softSwap(wrap);
   }
-  if (nFresh) count.textContent = nFresh + (nFresh === 1 ? " רשום חדש" : " רשומים חדשים") + " מהדוח הקודם";
+  function freshLine() { return nFresh + (nFresh === 1 ? " רשום חדש" : " רשומים חדשים") + " מהדוח הקודם"; }
+  if (marks && nFresh) count.textContent = freshLine();
   si.addEventListener("input", applyFilter);
   var foot = document.createElement("div"); foot.className = "pv-foot";
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה"; var hdr = rows.length ? rows[0].map(String) : [];
@@ -1227,16 +1239,18 @@ function openPreview(d) {
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
     /* Every grade selected is the same as no filter: the regular, full file. */
-    if (!grades.length || grades.length >= order.length) { hint.textContent = "סה\u05F4כ: " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
-    var gs = order.filter(function (g) { return grades.indexOf(g) !== -1; });
+    var gradeOn = grades.length && grades.length < order.length;
+    if (!gradeOn && !newOnly) { hint.textContent = "סה\u05F4כ: " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
+    var gs = gradeOn ? order.filter(function (g) { return grades.indexOf(g) !== -1; }) : [];
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
-    var sub = rows.slice(1).filter(function (r) { return gs.indexOf(norm(r[gi])) !== -1; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    hint.textContent = "בקובץ: " + sub.length + " רשומים " + (gs.length === 1 ? "משכבת " : "משכבות ") + gradeText(gs);
+    var sub = rows.slice(1).filter(function (r) { return (!gradeOn || gs.indexOf(norm(r[gi])) !== -1) && (!newOnly || freshSet[personKey(r[0], r[1], r[2])]); }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
+    hint.textContent = "בקובץ: " + sub.length + (newOnly ? " רשומים חדשים" : " רשומים") + (gradeOn ? (gs.length === 1 ? " משכבת " : " משכבות ") + gradeText(gs) : "");
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
     var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
-    var label = senior ? "שכבג" : gradeText(gs, true).replace(/[\\\/:*?"<>|]/g, ""); if (!senior && label.length > 30) label = gs.length + " שכבות";
+    var label = !gradeOn ? "" : senior ? "שכבג" : gradeText(gs, true).replace(/[\\\/:*?"<>|]/g, ""); if (gradeOn && !senior && label.length > 30) label = gs.length + " שכבות";
+    if (newOnly) label = label ? "חדשים, " + label : "חדשים";
     var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + label + ")";
     nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
@@ -1255,9 +1269,11 @@ function openPreview(d) {
   if (!canShareHere() && window.matchMedia && !matchMedia("(pointer: coarse)").matches) { if (rows.length > 8) si.focus(); else x.focus(); }
   else x.focus({ preventScroll: true });
 }
+var pvFreshKey = null;
 function closePreview(instant) {
   var ov = $("pvOverlay");
   if (!ov) return;
+  if (pvFreshKey) { try { localStorage.setItem(pvFreshKey[0], pvFreshKey[1]); } catch (e) {} pvFreshKey = null; }
   document.documentElement.classList.remove("pv-open");
   var back = previewReturn; previewReturn = null;
   if (instant) { ov.remove(); return; }
