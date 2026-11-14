@@ -330,6 +330,8 @@ footer .version { margin-top: 4px; }
 .view, #loginView > * { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
 /* Uploading is a desktop task: no upload button on phones. */
 @media (pointer: coarse) and (hover: none) { #adminBar { display: none !important; } }
+.upd-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 50; display: flex; align-items: center; gap: 14px; background: var(--fg); color: var(--bg); padding: 10px 10px 10px 16px; border-radius: 99px; font-size: 14px; box-shadow: var(--shadow); white-space: nowrap; }
+.upd-bar button { font: inherit; font-weight: 700; border: 0; border-radius: 99px; padding: 6px 14px; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
 #uploadCard.leaving { animation: sink .22s ease both; }
 @keyframes sink { to { opacity: 0; transform: translateY(8px) scale(.98); } }
 #adminBar:not([hidden]) { animation: fade .3s ease both; }
@@ -526,7 +528,28 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:19";
+var VERSION = "v15.11 · 00:21";
+/* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
+(function () {
+  var shown = false;
+  function offer() {
+    if (shown) return; shown = true;
+    var b = document.createElement("div"); b.className = "upd-bar"; b.setAttribute("role", "status");
+    var t = document.createElement("span"); t.textContent = "יש גרסה חדשה של האתר";
+    var r = document.createElement("button"); r.type = "button"; r.textContent = "רענון";
+    r.addEventListener("click", function () { location.reload(); });
+    b.appendChild(t); b.appendChild(r); document.body.appendChild(b);
+  }
+  function check() {
+    if (shown || !window.fetch) return;
+    fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (h) {
+      var m = /var VERSION = "([^"]+)"/.exec(h);
+      if (m && m[1] !== VERSION) offer();
+    }).catch(function () {});
+  }
+  setTimeout(check, 1500);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") check(); });
+})();
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
