@@ -1066,8 +1066,8 @@ function openPreview(d) {
     getFile(d, over || undefined);
   });
   /* Display form of grades: ח׳, י״א; runs of three or more consecutive grades become a range (ט׳-י״א). */
-  function gradeText(gs) {
-    function fmt(g) { var k = stripQ(norm(g)).replace(/^כיתה\s*/, ""); if (!/^[א-ת]{1,2}$/.test(k)) return g; return k.length === 1 ? k + "\u05F3" : k[0] + "\u05F4" + k[1]; }
+  function gradeText(gs, plain) {
+    function fmt(g) { var k = stripQ(norm(g)).replace(/^כיתה\s*/, ""); if (!/^[א-ת]{1,2}$/.test(k)) return g; if (plain) return k; return k.length === 1 ? k + "\u05F3" : k[0] + "\u05F4" + k[1]; }
     var idx = gs.map(function (g) { return order.indexOf(g); }), out = [], i = 0;
     while (i < gs.length) {
       var j = i; while (j + 1 < gs.length && idx[j + 1] === idx[j] + 1) j++;
@@ -1088,7 +1088,7 @@ function openPreview(d) {
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
     var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
-    var label = senior ? "שכבג" : gs.join(", ").replace(/[\\\/:*?"<>|]/g, ""); if (!senior && label.length > 30) label = gs.length + " שכבות";
+    var label = senior ? "שכבג" : gradeText(gs, true).replace(/[\\\/:*?"<>|]/g, ""); if (!senior && label.length > 30) label = gs.length + " שכבות";
     var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + label + ")";
     nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
