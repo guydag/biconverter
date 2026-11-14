@@ -526,7 +526,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:13";
+var VERSION = "v15.11 · 00:18";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1328,6 +1328,44 @@ function openInstallHelp() {
   document.documentElement.classList.add("pv-open");
   void ov.offsetWidth; ov.classList.add("in"); ok.focus({ preventScroll: true });
 }
+/* A small one-time welcome for phone users: what the site does and the add-to-home-screen nudge. */
+function maybeWelcome() {
+  if (!isPhone() || !auth || !auth.currentUser) return;
+  try { if (localStorage.getItem("welcomeSeen") === "1") return; } catch (e) {}
+  setTimeout(function () {
+    if (!auth.currentUser || $("pvOverlay")) return;
+    var ov = document.createElement("div"); ov.className = "pv-overlay"; ov.id = "pvOverlay";
+    var box = document.createElement("div"); box.className = "pv-box"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "ברוכים הבאים");
+    var head = document.createElement("div"); head.className = "pv-head";
+    var tt = document.createElement("div"); tt.className = "pv-title"; var h = document.createElement("strong"); h.textContent = "ברוכים הבאים"; tt.appendChild(h);
+    var sub = document.createElement("span"); sub.textContent = "שלושה דברים טובים לדעת"; tt.appendChild(sub);
+    head.appendChild(tt);
+    var body = document.createElement("div"); body.className = "ih-body";
+    var ol = document.createElement("ol"); ol.className = "ih-steps";
+    ["לוחצים על שורת דוח כדי לראות אותו, ועל הכפתור הכתום כדי לשתף או להוריד.",
+     "אפשר לחפש שם ולסנן לפי שכבה לפני ההורדה.",
+     "מוסיפים את האתר למסך הבית, וככה גם מקבלים התראה על דוחות חדשים."].forEach(function (t) { var li = document.createElement("li"); var sp = document.createElement("span"); sp.textContent = t; li.appendChild(sp); ol.appendChild(li); });
+    body.appendChild(ol);
+    var foot = document.createElement("div"); foot.className = "pv-foot";
+    function done() { try { localStorage.setItem("welcomeSeen", "1"); } catch (e) {} }
+    done(); /* shown once, however it is closed */
+    var ok = document.createElement("button"); ok.type = "button"; ok.className = "btn primary small";
+    if (installNeeded()) {
+      ok.textContent = "הוספה למסך הבית";
+      ok.addEventListener("click", function () { done(); closePreview(true); installAction(); });
+      var later = document.createElement("button"); later.type = "button"; later.className = "btn ghost small"; later.textContent = "אחר כך";
+      later.addEventListener("click", function () { done(); closePreview(); });
+      foot.appendChild(ok); foot.appendChild(later);
+    } else {
+      ok.textContent = "הבנתי"; ok.addEventListener("click", function () { done(); closePreview(); });
+      foot.appendChild(ok);
+    }
+    box.appendChild(head); box.appendChild(body); box.appendChild(foot); ov.appendChild(box);
+    document.body.appendChild(ov);
+    document.documentElement.classList.add("pv-open");
+    void ov.offsetWidth; ov.classList.add("in"); ok.focus({ preventScroll: true });
+  }, 600);
+}
 $("installBtn").addEventListener("click", installAction);
 $("installBannerBtn").addEventListener("click", installAction);
 $("installBannerX").addEventListener("click", function () { try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {} $("installBanner").hidden = true; });
@@ -1513,6 +1551,7 @@ auth.onAuthStateChanged(async function (user) {
   loadSaved();
   showGreeting(user);
   installInit();
+  maybeWelcome();
   state.isAdmin = await checkAdmin(user);
   $("adminBar").hidden = !state.isAdmin;
   if (state.saved) renderSaved();
