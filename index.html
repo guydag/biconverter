@@ -182,9 +182,13 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 10px; }
 .setting-text { display: flex; flex-direction: column; min-width: 0; }
 .setting-text span { color: var(--muted); font-size: 14px; }
-.setting-card .seg { display: flex; gap: 4px; margin-top: 12px; background: var(--line); border-radius: 12px; padding: 3px; }
+.setting-card:has(.seg) { padding: 14px; }
+.setting-card .seg { display: flex; gap: 4px; margin-top: 10px; background: var(--line); border-radius: 12px; padding: 3px; }
 .seg button { flex: 1; font: inherit; font-size: 14px; font-weight: 600; border: 0; background: transparent; color: var(--muted); padding: 7px 4px; border-radius: 9px; cursor: pointer; transition: background .15s, color .15s; }
 .seg button[aria-checked="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+:root[data-theme="dark"] .setting-card .seg { background: var(--bg); }
+:root[data-theme="dark"] .seg button[aria-checked="true"] { background: var(--line); color: var(--fg); box-shadow: none; }
+.seg button:focus { outline: none; } .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .seg button { white-space: nowrap; } .seg button[data-mode="auto"] { flex: 2.2; }
 .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .switch { flex: none; width: 52px; height: 30px; border-radius: 999px; border: 0; background: var(--line); position: relative; cursor: pointer; transition: background .2s; }
@@ -270,9 +274,9 @@ footer .version { margin-top: 4px; }
 .pv-table td { padding: 8px 18px; border-bottom: 1px solid var(--line); }
 .pv-table tr:last-child td { border-bottom: 0; }
 .pv-foot { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-start; }
-.push-card { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 12px; }
+.push-card { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px 12px; }
 .push-card .setting-row { padding: 10px; }
-.push-follow { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 4px; }
+.push-follow { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 4px; margin-top: 0; }
 .push-follow .setting-row { padding: 8px 10px; border-bottom: 1px solid var(--line); }
 #pushList .setting-row:last-child { border-bottom: 0; }
 .push-follow .btn { align-self: center; margin-top: 8px; }
@@ -562,7 +566,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:50";
+var VERSION = "v15.11 · 00:53";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
