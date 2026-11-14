@@ -106,6 +106,14 @@ td.to { font-weight: 700; color: var(--accent); }
 .login { display: flex; flex-direction: column; gap: 14px; padding: 24px; }
 .login .btn { max-width: none; margin-top: 6px; }
 button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cursor: pointer; }
+.sec-title { margin: 6px 0 -8px; font-size: 18px; font-weight: 700; }
+.saved { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.saved:last-child { border-bottom: 0; }
+.saved-info { display: flex; flex-direction: column; min-width: 0; }
+.saved-info strong { font-size: 16px; overflow-wrap: anywhere; }
+.saved-info span { color: var(--muted); font-size: 13px; }
+.btn.small { width: auto; padding: 8px 18px; font-size: 15px; flex: none; }
+#savedStatus { padding: 16px; text-align: center; }
 [hidden] { display: none !important; }
 @media (max-width: 520px) { h1 { font-size: 30px; } .logo { width: 96px; height: 96px; } .drop { padding-block: 36px 30px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -125,8 +133,8 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
       </header>
       <form class="card login" id="loginForm" novalidate>
         <div>
-          <label class="label" for="user">שם משתמש</label>
-          <input class="field" id="user" name="username" type="text" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false">
+          <label class="label" for="user">אימייל</label>
+          <input class="field" id="user" name="email" type="email" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false">
         </div>
         <div>
           <label class="label" for="pass">סיסמה</label>
@@ -191,11 +199,19 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
           </table>
         </div>
       </section>
+      <h2 class="sec-title">הגרסה העדכנית של כל מפעל</h2>
+      <section class="card table-card">
+        <p class="note" id="savedStatus" hidden></p>
+        <div id="savedList"></div>
+      </section>
       <p class="note">המילון קבוע ומשותף לכל מי שמשתמש באתר, ואי אפשר לשנות אותו מכאן. כדי להוסיף או לשנות המרה, יש לפנות לגיא, שמתחזק את האתר.</p>
     </div>
   </main>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
@@ -377,6 +393,47 @@ async function buildBlob() {
   return new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+async function saveBlob(blob, name) {
+  var dl = null;
+  try { dl = window.claude ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
+  if (dl) { await dl.save({ filename: name, data: blob }); return; }
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function blobToBase64(blob) {
+  return new Promise(function (resolve, reject) {
+    var r = new FileReader();
+    r.onload = function () { resolve(String(r.result).split(",")[1]); };
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(b64) {
+  var bin = atob(b64), n = bin.length, u = new Uint8Array(n);
+  for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
+  return new Blob([u], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+/* One document per factory, replaced on every new file, so it always holds the latest version. */
+async function saveLatest(blob, name) {
+  var key = (state.keywords || "ללא מפעל").replace(/\//g, "-");
+  var data = await blobToBase64(blob);
+  if (data.length > 900000) throw new Error("too-large");
+  await db.collection("factories").doc(key).set({
+    name: key,
+    fileName: name,
+    rows: state.rows.length,
+    by: auth.currentUser ? auth.currentUser.email : "",
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    data: data
+  });
+}
+
 async function download() {
   var btn = $("download");
   btn.disabled = true;
@@ -385,24 +442,49 @@ async function download() {
   try {
     var blob = await buildBlob();
     var name = buildName(state.keywords);
-    var dl = null;
-    try { dl = window.claude ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
-    if (dl) {
-      await dl.save({ filename: name, data: blob });
-    } else {
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
-    $("done").textContent = "הקובץ נשמר";
+    await saveBlob(blob, name);
+    var msg = "הקובץ נשמר";
+    try { await saveLatest(blob, name); msg += ", והגרסה העדכנית נשמרה במערכת"; }
+    catch (e) { msg += ", אך לא הצלחנו לשמור אותו במערכת"; }
+    $("done").textContent = msg;
   } catch (e) {
     if (e && e.code === "declined") { /* viewer chose not to save */ }
     else showError("השמירה לא הצליחה. נסו שוב.");
   } finally {
     btn.disabled = false;
+  }
+}
+
+/* Settings page: latest saved file per factory. */
+function fmtDate(ts) {
+  if (!ts || !ts.toDate) return "";
+  return new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(ts.toDate());
+}
+async function loadSaved() {
+  var box = $("savedList"), st = $("savedStatus");
+  if (!box) return;
+  st.textContent = "טוען…"; st.hidden = false;
+  try {
+    var snap = await db.collection("factories").orderBy("updatedAt", "desc").get();
+    box.textContent = "";
+    if (snap.empty) { st.textContent = "עדיין לא נשמרו קבצים. קובץ נשמר אוטומטית בכל הורדה."; return; }
+    st.hidden = true;
+    snap.forEach(function (doc) {
+      var d = doc.data();
+      var row = document.createElement("div"); row.className = "saved";
+      var info = document.createElement("div"); info.className = "saved-info";
+      var t = document.createElement("strong"); t.textContent = d.name;
+      var m = document.createElement("span"); m.textContent = fmtDate(d.updatedAt) + " · " + d.rows + " רשומים";
+      info.appendChild(t); info.appendChild(m);
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "הורדה";
+      b.addEventListener("click", function () {
+        saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
+      });
+      row.appendChild(info); row.appendChild(b);
+      box.appendChild(row);
+    });
+  } catch (e) {
+    st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
   }
 }
 
@@ -434,73 +516,69 @@ function route() {
   var onSettings = location.hash === "#aliases";
   $("viewMain").hidden = onSettings;
   $("viewSettings").hidden = !onSettings;
+  if (onSettings && auth && auth.currentUser) loadSaved();
   window.scrollTo(0, 0);
 }
 renderAliases();
 window.addEventListener("hashchange", route);
 route();
-/* Login gate. Only salted PBKDF2 hashes are stored; there is no registration.
-   This runs in the browser, so it keeps casual visitors out but is not server-side security. */
-var AUTH_KEY = "mishuot-auth";
-var USERS = [{ u: "guyda", salt: "e1d8ac75893daa8cfdcb0653ebb82792", hash: "420afa3b6bdb0235ac8890151b40fd42168cb3c96c84da73d0e33acef6f1ad43", iter: 200000 }];
-
-function toHex(buf) {
-  return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
-}
-async function derive(user, pw, rec) {
-  var enc = new TextEncoder();
-  var key = await crypto.subtle.importKey("raw", enc.encode(pw), "PBKDF2", false, ["deriveBits"]);
-  var bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: enc.encode(rec.salt + ":" + user), iterations: rec.iter, hash: "SHA-256" }, key, 256);
-  return toHex(bits);
-}
-function isAuthed() {
-  try { var v = localStorage.getItem(AUTH_KEY); return !!v && USERS.some(function (u) { return u.u === v; }); }
-  catch (e) { return false; }
-}
+/* Login via Firebase Authentication. Accounts are created by the site owner in the
+   Firebase console; self-registration is switched off there. Access to the saved
+   files is enforced by Firestore security rules, not by this page. */
 function showApp(on) {
   $("app").hidden = !on;
   $("loginView").hidden = on;
   if (on) route();
 }
 function loginError(msg) { var e = $("loginError"); e.textContent = msg; e.hidden = false; }
-
 $("loginLogo").src = $("logo").src;
+
+var auth = null, db = null;
+if (typeof firebase === "undefined") {
+  showApp(false);
+  loginError("לא הצלחנו להתחבר לשירות הכניסה. בדקו את החיבור לאינטרנט ורעננו את הדף.");
+  $("loginBtn").disabled = true;
+} else {
+firebase.initializeApp({
+  apiKey: "AIzaSyABd26IEKadfnCKTyVezfD4upQOLu8XxNE",
+  authDomain: "mishuot.firebaseapp.com",
+  projectId: "mishuot",
+  storageBucket: "mishuot.firebasestorage.app",
+  messagingSenderId: "771775436102",
+  appId: "1:771775436102:web:e1c8ef6a1cea1b95fdc147"
+});
+auth = firebase.auth();
+db = firebase.firestore();
+
 $("loginForm").addEventListener("submit", async function (ev) {
   ev.preventDefault();
   $("loginError").hidden = true;
-  var user = $("user").value.trim().toLowerCase();
+  var email = $("user").value.trim();
   var pw = $("pass").value;
   var btn = $("loginBtn");
-  if (!window.crypto || !crypto.subtle) { loginError("הדפדפן הזה לא תומך בכניסה. פתחו את האתר בכתובת האינטרנט שלו."); return; }
+  if (!email || !pw) { loginError("יש להזין אימייל וסיסמה."); return; }
   btn.disabled = true;
   try {
-    var rec = USERS.filter(function (u) { return u.u === user; })[0];
-    var ok = false;
-    if (rec) { ok = (await derive(user, pw, rec)) === rec.hash; }
-    else { await derive(user, pw, USERS[0]); }
-    if (ok) {
-      try { localStorage.setItem(AUTH_KEY, user); } catch (e) {}
-      $("pass").value = "";
-      showApp(true);
-    } else {
-      await new Promise(function (r) { setTimeout(r, 700); });
-      loginError("שם המשתמש או הסיסמה שגויים.");
-    }
+    await auth.signInWithEmailAndPassword(email, pw);
+    $("pass").value = "";
   } catch (e) {
-    loginError("הכניסה לא הצליחה. נסו שוב.");
+    var bad = ["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"];
+    if (bad.indexOf(e.code) !== -1) loginError("האימייל או הסיסמה שגויים.");
+    else if (e.code === "auth/too-many-requests") loginError("יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.");
+    else if (e.code === "auth/network-request-failed") loginError("אין חיבור לאינטרנט.");
+    else loginError("הכניסה לא הצליחה. נסו שוב.");
   } finally {
     btn.disabled = false;
   }
 });
 Array.prototype.forEach.call(document.querySelectorAll("[data-logout]"), function (b) {
-  b.addEventListener("click", function () {
-    try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
-    location.hash = "";
-    showApp(false);
-  });
+  b.addEventListener("click", function () { location.hash = ""; auth.signOut(); });
 });
-showApp(isAuthed());
+auth.onAuthStateChanged(function (user) {
+  showApp(!!user);
+  if (user) loadSaved();
+});
+}
 </script>
 
 </body>
