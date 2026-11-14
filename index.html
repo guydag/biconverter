@@ -243,6 +243,9 @@ footer .version { margin-top: 4px; }
 .pv-chips { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; }
 .pv-chips::-webkit-scrollbar { display: none; }
 .chip { flex: none; font: inherit; font-size: 14px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s, color .15s, border-color .15s; }
+.pv-count { min-height: 18px; padding: 2px 4px 0; font-size: 12px; color: var(--muted); }
+.pv-foot { align-items: center; gap: 12px; }
+.pv-hint { font-size: 12px; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 .chip small { font-size: 11px; font-weight: 600; color: var(--muted); }
 .chip:hover { border-color: var(--accent); }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
@@ -261,6 +264,13 @@ footer .version { margin-top: 4px; }
 .pv-table td { padding: 8px 18px; border-bottom: 1px solid var(--line); }
 .pv-table tr:last-child td { border-bottom: 0; }
 .pv-foot { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-start; }
+.push-card { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 12px; }
+.push-card .setting-row { padding: 10px; }
+.push-follow { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 4px; }
+.push-follow .setting-row { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+#pushList .setting-row:last-child { border-bottom: 0; }
+.push-follow .btn { align-self: center; margin-top: 8px; }
+.push-card .note { padding: 0 10px; margin: 0; }
 .help summary { cursor: pointer; font-weight: 600; }
 .help { margin: 0; }
 
@@ -432,6 +442,19 @@ footer .version { margin-top: 4px; }
         </div>
       </section>
 
+      <section class="card push-card" id="pushSection" hidden>
+        <div class="setting-row">
+          <div class="setting-text"><strong>התראות על דוחות חדשים</strong><span id="pushText">קבלו הודעה לטלפון כשעולה דוח של מפעל שמעניין אתכם.</span></div>
+          <button class="btn primary small" id="pushBtn" type="button">הפעלה</button>
+        </div>
+        <div class="push-follow" id="pushFollow" hidden>
+          <div class="setting-row"><div class="setting-text"><strong>כל המפעלים</strong></div><button class="switch" id="pushAll" type="button" role="switch" aria-checked="true" aria-label="התראה על כל המפעלים"></button></div>
+          <div id="pushList"></div>
+          <button class="btn ghost small" id="pushOff" type="button">כיבוי התראות במכשיר הזה</button>
+        </div>
+        <p class="note" id="pushMsg" hidden></p>
+      </section>
+
       <div id="usersSection" hidden>
         <h2 class="sec-title">משתמשים</h2>
         <section class="card table-card">
@@ -459,6 +482,7 @@ footer .version { margin-top: 4px; }
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
@@ -477,7 +501,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:51";
+var VERSION = "v14.11 · 23:56";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -946,7 +970,7 @@ function openPreview(d) {
   sw.appendChild(si); addClearButton(si);
   var gi = rows.length ? rows[0].indexOf("שכבה") : -1;
   if (gi === -1 && rows.length && rows[0].length > 1) gi = rows[0].length - 1;
-  var grade = "", chips = null;
+  var grades = [], chips = null;
   var counts = {}, order = [];
   if (gi !== -1) rows.slice(1).forEach(function (r) { var g = norm(r[gi]); if (!g) return; if (!(g in counts)) { counts[g] = 0; order.push(g); } counts[g]++; });
   order.sort(function (a, b) { return gradeIndex(a) - gradeIndex(b) || a.localeCompare(b, "he"); });
@@ -954,11 +978,13 @@ function openPreview(d) {
     chips = document.createElement("div"); chips.className = "pv-chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "סינון לפי שכבה");
     [""].concat(order).forEach(function (g) {
       var c = document.createElement("button"); c.type = "button"; c.className = "chip" + (g === "" ? " on" : "");
-      c.textContent = g === "" ? "הכל" : g; c.dataset.g = g;
+      c.textContent = g === "" ? "הכל" : g; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
       if (g !== "") { var n = document.createElement("small"); n.textContent = counts[g]; c.appendChild(n); }
       c.addEventListener("click", function () {
-        grade = g;
-        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k === c); });
+        /* "הכל" clears the selection; a grade toggles on and off, and several can be on together. */
+        if (g === "") grades = [];
+        else { var i = grades.indexOf(g); if (i === -1) grades.push(g); else grades.splice(i, 1); }
+        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k.dataset.g === "" ? !grades.length : grades.indexOf(k.dataset.g) !== -1); k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false"); });
         applyFilter(); prepareGrade();
         c.scrollIntoView({ block: "nearest", inline: "nearest" });
       });
@@ -988,14 +1014,17 @@ function openPreview(d) {
   wrap.appendChild(t);
   var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
   wrap.appendChild(none);
+  var total = rows.length ? rows.length - 1 : 0;
+  var count = document.createElement("div"); count.className = "pv-count"; count.setAttribute("aria-live", "polite"); sw.appendChild(count);
   function applyFilter() {
     var q = si.value, shown = 0;
     Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
       var cells = Array.prototype.map.call(tr.cells, function (c) { return c.textContent; });
-      var hit = (!grade || norm(cells[gi]) === grade) && matchesSearch(cells.join(" "), q);
+      var hit = (!grades.length || grades.indexOf(norm(cells[gi])) !== -1) && matchesSearch(cells.join(" "), q);
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
+    count.textContent = (si.value.trim() || grades.length) ? shown + " מתוך " + total + " רשומים" : "";
     wrap.scrollTop = 0;
     softSwap(wrap);
   }
@@ -1004,23 +1033,27 @@ function openPreview(d) {
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה"; var hdr = rows.length ? rows[0].map(String) : [];
   var ready = null;
   function dlLabel() { return canShareHere() ? "שיתוף" : "הורדה"; }
+  var hint = document.createElement("span"); hint.className = "pv-hint";
   dl.addEventListener("click", async function () {
-    if (!grade) { getFile(d); return; }
+    if (!grades.length) { getFile(d); return; }
     var over = null;
     try { over = await ready; } catch (e) {}
     getFile(d, over || undefined);
   });
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
-    if (!grade) return;
-    var g = grade, fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
+    if (!grades.length) { hint.textContent = ""; return; }
+    var gs = order.filter(function (g) { return grades.indexOf(g) !== -1; });
+    var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
-    var sub = rows.slice(1).filter(function (r) { return norm(r[gi]) === g; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + g.replace(/[\\\/:*?"<>|]/g, "") + ")";
+    var sub = rows.slice(1).filter(function (r) { return gs.indexOf(norm(r[gi])) !== -1; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
+    hint.textContent = "בקובץ: " + sub.length + " רשומים משכבות " + gs.join(", ");
+    var label = gs.join(", ").replace(/[\\\/:*?"<>|]/g, ""); if (label.length > 30) label = gs.length + " שכבות";
+    var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + label + ")";
     nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
     ready = buildBlob(sub, false).then(function (b) { return { blob: b, name: nm }; });
   }
-  foot.appendChild(dl);
+  foot.appendChild(dl); foot.appendChild(hint);
   box.appendChild(head); box.appendChild(sw); box.appendChild(headRow); box.appendChild(wrap); box.appendChild(foot);
   ov.appendChild(box);
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
@@ -1125,12 +1158,95 @@ $("uploadBtn").addEventListener("click", function () {
 });
 $("cancelUpload").addEventListener("click", closeUpload);
 $("reset").addEventListener("click", closeUpload);
+
+/* Push notifications (phones only): a device token and the chosen factories are kept in subs/{email}. */
+var VAPID_KEY = "BFCvIJVe_vLkaNJeUzglB8P4J9-NtZSJBVCL7tm1yhZj1N_vx3RGmADQlZX8xDsc3rEy2rpO5ucpXQRK8iceuug";
+var PUSH_ENABLED = false; /* switched on once the sending function is deployed */
+var push = { sub: { all: true, follows: [] }, token: "", msg: null };
+function isPhone() { try { return matchMedia("(pointer: coarse)").matches && matchMedia("(hover: none)").matches; } catch (e) { return false; } }
+function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+function isStandalone() { return (window.navigator.standalone === true) || (window.matchMedia && matchMedia("(display-mode: standalone)").matches); }
+function subRef() { var u = auth.currentUser; return u ? db.collection("subs").doc((u.email || "").toLowerCase()) : null; }
+function pushNote(t) { var n = $("pushMsg"); n.textContent = t || ""; n.hidden = !t; }
+async function pushSupported() {
+  try { return !!(window.Notification && "serviceWorker" in navigator && firebase.messaging && firebase.messaging.isSupported && await firebase.messaging.isSupported()); } catch (e) { return false; }
+}
+function pushRender() {
+  var granted = window.Notification && Notification.permission === "granted" && !!push.token;
+  $("pushBtn").hidden = granted; $("pushFollow").hidden = !granted;
+  $("pushText").textContent = granted ? "פעילות במכשיר הזה." : "קבלו הודעה לטלפון כשעולה דוח של מפעל שמעניין אתכם.";
+  $("pushAll").setAttribute("aria-checked", push.sub.all ? "true" : "false");
+  var box = $("pushList"); box.textContent = "";
+  if (!granted || push.sub.all) return;
+  (state.saved || []).forEach(function (x) {
+    var row = document.createElement("div"); row.className = "setting-row";
+    var tx = document.createElement("div"); tx.className = "setting-text"; var st = document.createElement("strong"); st.textContent = x.d.name; tx.appendChild(st);
+    var sw = document.createElement("button"); sw.type = "button"; sw.className = "switch"; sw.setAttribute("role", "switch"); sw.setAttribute("aria-label", "התראה על " + x.d.name);
+    sw.setAttribute("aria-checked", push.sub.follows.indexOf(x.d.name) !== -1 ? "true" : "false");
+    sw.addEventListener("click", function () {
+      var i = push.sub.follows.indexOf(x.d.name);
+      if (i === -1) push.sub.follows.push(x.d.name); else push.sub.follows.splice(i, 1);
+      sw.setAttribute("aria-checked", i === -1 ? "true" : "false"); pushSave();
+    });
+    row.appendChild(tx); row.appendChild(sw); box.appendChild(row);
+  });
+}
+async function pushSave(extra) {
+  var ref = subRef(); if (!ref) return;
+  var data = { all: !!push.sub.all, follows: push.sub.follows.slice() };
+  if (extra) for (var k in extra) data[k] = extra[k];
+  try { await ref.set(data, { merge: true }); } catch (e) { pushNote("השמירה לא הצליחה. נסו שוב."); }
+}
+async function pushInit() {
+  var sec = $("pushSection");
+  sec.hidden = true;
+  if (!PUSH_ENABLED || !isPhone() || !auth.currentUser) return;
+  sec.hidden = false;
+  if (isIOS() && !isStandalone()) {
+    $("pushBtn").hidden = true; $("pushFollow").hidden = true;
+    pushNote("באייפון ההתראות עובדות רק מהאתר שהוספתם למסך הבית: בדפדפן לוחצים על שיתוף ואז על \u201Cהוספה למסך הבית\u201D, ופותחים את האתר משם.");
+    return;
+  }
+  if (!(await pushSupported())) { $("pushBtn").hidden = true; pushNote("הדפדפן הזה לא תומך בהתראות."); return; }
+  pushNote("");
+  try { var s = await subRef().get(); if (s.exists) { var d = s.data(); push.sub = { all: d.all !== false, follows: d.follows || [] }; } } catch (e) {}
+  if (Notification.permission === "granted") { await pushGetToken(); }
+  else if (Notification.permission === "denied") { $("pushBtn").hidden = true; pushNote("ההתראות חסומות לאתר הזה. אפשר לאפשר אותן בהגדרות הדפדפן."); }
+  pushRender();
+}
+async function pushGetToken() {
+  try {
+    var reg = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+    await navigator.serviceWorker.ready;
+    push.token = await firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if (push.token) { await subRef().set({ tokens: firebase.firestore.FieldValue.arrayUnion(push.token), all: !!push.sub.all, follows: push.sub.follows.slice() }, { merge: true }); }
+  } catch (e) { push.token = ""; pushNote("לא הצלחנו להפעיל התראות במכשיר הזה."); }
+}
+$("pushBtn").addEventListener("click", async function () {
+  var b = $("pushBtn"); b.disabled = true; pushNote("");
+  try {
+    var p = await Notification.requestPermission();
+    if (p === "granted") { push.sub.all = true; await pushGetToken(); }
+    else pushNote(p === "denied" ? "ההתראות נחסמו. אפשר לאפשר אותן בהגדרות הדפדפן." : "לא אושרו התראות.");
+  } catch (e) { pushNote("לא הצלחנו להפעיל התראות."); }
+  b.disabled = false; pushRender();
+});
+$("pushAll").addEventListener("click", function () { push.sub.all = !push.sub.all; pushRender(); pushSave(); });
+$("pushOff").addEventListener("click", async function () {
+  try {
+    var t = push.token;
+    if (t) { await subRef().set({ tokens: firebase.firestore.FieldValue.arrayRemove(t) }, { merge: true }); }
+    await firebase.messaging().deleteToken();
+  } catch (e) {}
+  push.token = ""; pushNote("ההתראות כבויות במכשיר הזה."); pushRender();
+});
 /* Settings view, shown at #settings. */
 function route() {
   var onSettings = location.hash === "#settings";
   $("viewMain").hidden = onSettings;
   $("viewSettings").hidden = !onSettings;
   if (onSettings && state.isAdmin) loadUsers();
+  if (onSettings && auth && auth.currentUser) pushInit();
   window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", route);
