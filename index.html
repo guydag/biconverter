@@ -47,12 +47,12 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --bg: #1a1411; --surface: #251d19; --fg: #f5ece4; --muted: #b9a99e; --line: #3a2e27; --wash: #33200f;
-  --accent: #ff8a4c; --accent-fg: #2a1304; --accent-soft: #3b2619;
-  --warm-soft: #3a3010; --warm-fg: #f7d56a;
-  --ok: #5fd09a; --ok-soft: #173326; --err: #ff8f86; --err-soft: #3d1c19;
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.35);
-  --drop-line: #5a4030; --veil: rgba(26,20,17,.88);
+  --bg: #26272b; --surface: #303136; --fg: #ececee; --muted: #a5a7ae; --line: #41434a; --wash: #2d2e33;
+  --accent: #ff9a5c; --accent-fg: #2a1304; --accent-soft: #44352b;
+  --warm-soft: #3a3322; --warm-fg: #f7d56a;
+  --ok: #5fd09a; --ok-soft: #1f3329; --err: #ff8f86; --err-soft: #3a2426;
+  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.3);
+  --drop-line: #55565e; --veil: rgba(38,39,43,.88);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -526,7 +526,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:18";
+var VERSION = "v15.11 · 00:19";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1387,7 +1387,7 @@ $("darkSwitch").addEventListener("click", function () {
   var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   try { localStorage.setItem("theme", next); } catch (e) {}
-  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = next === "dark" ? "#1a1411" : "#fffaf3";
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = next === "dark" ? "#26272b" : "#fffaf3";
   syncSwitch();
 });
 syncSwitch();
