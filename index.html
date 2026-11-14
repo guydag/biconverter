@@ -115,6 +115,11 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .sec-title { margin: 6px 0 -8px; font-size: 18px; font-weight: 700; }
 .saved { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .saved:last-child { border-bottom: 0; }
+.saved-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.share-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--accent); display: grid; place-items: center; cursor: pointer; transition: background .15s, transform .15s, color .15s; }
+.share-btn:hover { background: var(--accent); color: var(--accent-fg); transform: translateY(-1px); }
+.share-btn:active { transform: scale(.94); }
+.share-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .saved-info { display: flex; flex-direction: column; min-width: 0; }
 .saved-info strong { font-size: 16px; overflow-wrap: anywhere; }
 .saved-info span { color: var(--muted); font-size: 13px; }
@@ -553,6 +558,22 @@ function fileStamp(fileName, ts) {
   var m = /(\d{2}\.\d{2}) (\d{2})-(\d{2})(?:\.\w+)?$/.exec(fileName || "");
   return m ? m[1] + " " + m[2] + ":" + m[3] : fmtDate(ts);
 }
+var SHARE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M12 3L8 7M12 3l4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+/* Share the actual file where the device supports it (phones); otherwise open WhatsApp with a short message and the site link. */
+async function shareSaved(d) {
+  var blob = base64ToBlob(d.data);
+  try {
+    var file = new File([blob], d.fileName, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: d.name });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
+  var text = "📋 " + d.name + " · " + d.rows + " רשומים\n" + location.origin + location.pathname;
+  window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
+}
 async function loadSaved() {
   var box = $("savedList"), st = $("savedStatus");
   if (!box) return;
@@ -573,7 +594,12 @@ async function loadSaved() {
       b.addEventListener("click", function () {
         saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
       });
-      row.appendChild(info); row.appendChild(b);
+      var sh = document.createElement("button"); sh.type = "button"; sh.className = "share-btn"; sh.title = "שיתוף"; sh.setAttribute("aria-label", "שיתוף " + d.name);
+      sh.innerHTML = SHARE_ICON;
+      sh.addEventListener("click", function () { shareSaved(d); });
+      var acts = document.createElement("div"); acts.className = "saved-actions";
+      acts.appendChild(sh); acts.appendChild(b);
+      row.appendChild(info); row.appendChild(acts);
       box.appendChild(row);
     });
   } catch (e) {
