@@ -116,12 +116,13 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .saved-info strong { font-size: 16px; overflow-wrap: anywhere; }
 .saved-info span { color: var(--muted); font-size: 13px; }
 .check { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--muted); cursor: pointer; }
+.publish-row { justify-content: center; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
 .btn.small { width: auto; padding: 8px 18px; font-size: 15px; flex: none; }
 #savedStatus { padding: 16px; text-align: center; }
 .veil { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(255,250,243,.88); pointer-events: none; }
 .veil > div { padding: 36px 48px; border: 3px dashed var(--accent); border-radius: 24px; background: var(--surface); color: var(--accent); font-size: 24px; font-weight: 800; text-align: center; box-shadow: var(--shadow); }
-.admin-bar { display: flex; justify-content: center; }
+.admin-bar { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .admin-bar .btn { max-width: 360px; }
 .card { position: relative; }
 .close-x { position: absolute; top: 20px; inset-inline-start: 20px; z-index: 2; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; cursor: pointer; transition: background .15s, transform .15s; }
@@ -202,6 +203,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M12 4l-4.5 4.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
         העלאת קובץ BI
       </button>
+      <label class="check publish-row" for="publish"><input type="checkbox" id="publish" checked> לפרסם באתר</label>
     </div>
 
     <section class="card" id="uploadCard" hidden>
@@ -384,16 +386,21 @@ function breakdown(rows) {
 }
 
 async function render() {
+  var publish = $("publish").checked;
   $("drop").hidden = true;
   $("cancelUpload").hidden = true;
   $("result").hidden = false;
-  $("done").textContent = "שומר במערכת…";
+  $("done").textContent = publish ? "מפרסם באתר…" : "";
   try {
     state.blob = await buildBlob();
     state.name = buildName(state.keywords);
-    await saveLatest(state.blob, state.name);
-    $("done").textContent = "הקובץ נשמר במערכת";
-    loadSaved();
+    if (publish) {
+      await saveLatest(state.blob, state.name);
+      $("done").textContent = "הקובץ פורסם באתר";
+      loadSaved();
+    } else {
+      $("done").textContent = "הקובץ מוכן להורדה (לא פורסם)";
+    }
   } catch (e) {
     $("done").textContent = "";
     showError(e && e.code === "permission-denied" ? "אין לך הרשאה להעלות קבצים." : "השמירה במערכת לא הצליחה. אפשר עדיין להוריד את הקובץ.");
