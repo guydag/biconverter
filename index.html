@@ -595,7 +595,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:25";
+var VERSION = "v15.11 · 01:28";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -610,7 +610,7 @@ var VERSION = "v15.11 · 01:25";
   function check() {
     if (shown || !window.fetch) return;
     fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (h) {
-      var m = /var VERSION = "v15.11 · 01:25"]+)"/.exec(h);
+      var m = /var VERSION = "([^"]+)"/.exec(h);
       if (m && m[1] !== VERSION) offer();
     }).catch(function () {});
   }
