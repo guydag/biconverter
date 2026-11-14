@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>body{margin:0}img{max-width:100%}.pv-overlay:not(.in){pointer-events:none}
 #newUser:placeholder-shown{direction:rtl;text-align:right}
+@media (max-height: 640px) {
+  #viewMain:has(#uploadCard:not([hidden])) #listTitle, #viewMain:has(#uploadCard:not([hidden])) #savedCard, #viewMain:has(#uploadCard:not([hidden])) #searchWrap { display: none; }
+  .result { padding: 14px 12px 12px; gap: 8px; }
+  .result .icon { width: 44px; height: 44px; }
+  .result h2 { margin: 0 0 4px; font-size: 19px; }
+  .result .btn { padding-block: 9px; }
+  .status { min-height: 0; margin: 0; }
+}
+.pv-table tr.fresh td { background: var(--accent-soft); }
+.newtag { display: inline-block; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; }
 </style>
 <title>רשומי משואות</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -99,6 +109,9 @@ footer { margin-top: auto; }
   .drop { padding-block: 22px; }
 }
 @media (max-height: 700px) { #viewMain:has(#uploadCard:not([hidden])) .head { display: none; } }
+.status:empty { display: none; }
+@media (max-height: 760px) { #viewMain:has(#uploadCard:not([hidden])) #savedCard, #viewMain:has(#uploadCard:not([hidden])) #listTitle, #viewMain:has(#uploadCard:not([hidden])) #searchWrap { display: none; } }
+@media (max-height: 520px) { .result { padding: 8px 12px; gap: 6px; } .result .icon { display: none; } .result h2 { font-size: 17px; margin: 0; } .result .btn { padding-block: 7px; } }
 #viewSettings { flex: 1 1 auto; min-height: 0; }
 .settings-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: inherit; margin: 0 -8px; padding: 4px 8px 8px; }
 #usersList { max-height: none; }
@@ -596,7 +609,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 01:37";
+var VERSION = "v15.11 · 01:47";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -844,6 +857,7 @@ function base64ToBlob(b64) {
 }
 
 /* One document per factory, replaced on every new file, so it always holds the latest version. */
+function personKey(fn, ln, gr) { return [norm(fn), norm(ln), norm(gr)].join("|"); }
 async function saveLatest(blob, name) {
   var key = (state.keywords || "ללא מפעל").replace(/\//g, "-");
   var data = await blobToBase64(blob);
@@ -851,11 +865,21 @@ async function saveLatest(blob, name) {
   var ref = db.collection("factories").doc(key);
   /* Only the newest file per factory is kept: an older file never replaces a newer one. */
   var cur = await ref.get();
+  var fresh = [];
   if (cur.exists) {
     var c = cur.data(), curTime = c.fileTime || 0;
     if ((state.fileTime || 0) < curTime) return false;
+    /* People who were not in the previous report of this factory are marked as new. */
+    try {
+      var pw = XLSX.read(c.data, { type: "base64" });
+      var pm = XLSX.utils.sheet_to_json(pw.Sheets[pw.SheetNames[0]], { header: 1, defval: "" });
+      var seenKeys = {};
+      pm.slice(1).forEach(function (r) { seenKeys[personKey(r[0], r[1], r[2])] = true; });
+      state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); if (!seenKeys[k]) fresh.push(k); });
+    } catch (e) { fresh = []; }
   }
   await ref.set({
+    fresh: fresh,
     name: key,
     fileTime: state.fileTime || Date.now(),
     fileName: name,
@@ -1148,9 +1172,15 @@ function openPreview(d) {
   (rows[0] || []).forEach(function (c) { var th = document.createElement("th"); th.textContent = c; htr.appendChild(th); });
   hb.appendChild(htr); headRow.appendChild(ht);
   var t = mkTable(), tbd = t.createTBody();
+  var freshSet = {}, nFresh = 0;
+  (Array.isArray(d.fresh) ? d.fresh : []).forEach(function (k) { freshSet[k] = true; });
   rows.slice(1).forEach(function (r) {
     var tr = document.createElement("tr");
     r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
+    if (freshSet[personKey(r[0], r[1], r[2])]) {
+      nFresh++; tr.className = "fresh";
+      var tg = document.createElement("span"); tg.className = "newtag"; tg.textContent = "חדש"; tr.cells[0].appendChild(tg);
+    }
     tbd.appendChild(tr);
   });
   wrap.appendChild(t);
@@ -1166,10 +1196,11 @@ function openPreview(d) {
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
-    count.textContent = (si.value.trim() || grades.length) ? shown + " מתוך " + total + " רשומים" : "";
+    count.textContent = (si.value.trim() || grades.length) ? shown + " מתוך " + total + " רשומים" : (nFresh ? nFresh + (nFresh === 1 ? " רשום חדש" : " רשומים חדשים") + " מהדוח הקודם" : "");
     wrap.scrollTop = 0;
     softSwap(wrap);
   }
+  if (nFresh) count.textContent = nFresh + (nFresh === 1 ? " רשום חדש" : " רשומים חדשים") + " מהדוח הקודם";
   si.addEventListener("input", applyFilter);
   var foot = document.createElement("div"); foot.className = "pv-foot";
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה"; var hdr = rows.length ? rows[0].map(String) : [];
