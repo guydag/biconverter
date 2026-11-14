@@ -566,7 +566,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:53";
+var VERSION = "v15.11 · 00:55";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1278,7 +1278,7 @@ async function pushSupported() {
 function pushRender() {
   var granted = window.Notification && Notification.permission === "granted" && !!push.token;
   $("pushBtn").hidden = granted; $("pushFollow").hidden = !granted;
-  $("pushText").textContent = granted ? "פעילות במכשיר הזה." : "קבלו הודעה לטלפון כשעולה דוח של מפעל שמעניין אתכם.";
+  $("pushText").textContent = granted ? "" : "קבלו הודעה לטלפון כשעולה דוח של מפעל שמעניין אתכם.";
   $("pushAll").setAttribute("aria-checked", push.sub.all ? "true" : "false");
   var box = $("pushList"); box.textContent = "";
   if (!granted || push.sub.all) return;
