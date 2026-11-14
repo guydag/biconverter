@@ -77,6 +77,9 @@ h1 { margin: 2px 0 0; font-size: 36px; line-height: 1.15; font-weight: 800; text
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); font-weight: 600; }
 .btn.ghost:hover { background: var(--bg); }
+.btn.wa { background: #25D366; color: #073b1c; text-decoration: none; }
+.btn[hidden] { display: none; }
+.btn.wa:hover { filter: brightness(1.05); }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .btn[disabled] { opacity: .55; cursor: default; }
 .status { min-height: 1.5em; margin: 4px 0 0; color: var(--ok); font-weight: 600; }
@@ -225,6 +228,10 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M12 16l-4.5-4.5M12 16l4.5-4.5"/><path d="M4 19h16"/></svg>
           הורדת קובץ אקסל
         </button>
+        <a class="btn wa" id="share" href="#" target="_blank" rel="noopener" hidden>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 20.8l1.3-4.6A8.8 8.8 0 1 1 8 19.6z"/><path d="M9 8.6c.2 2.8 3.6 6.2 6.4 6.4l1.3-1.3a.7.7 0 0 0 0-1l-1.5-1a.7.7 0 0 0-.9.1l-.6.6c-1-.5-1.9-1.4-2.4-2.4l.6-.6a.7.7 0 0 0 .1-.9l-1-1.5a.7.7 0 0 0-1 0z"/></svg>
+          שיתוף בוואטסאפ
+        </a>
         <button class="btn ghost" id="reset" type="button">סיום</button>
         <p class="status" id="done" role="status" aria-live="polite"></p>
       </div>
@@ -384,6 +391,13 @@ function breakdown(rows) {
   return list;
 }
 
+function setShare() {
+  var a = $("share");
+  var site = location.origin + location.pathname;
+  var text = "📋 עודכן קובץ חדש ברשומי משואות\n" + (state.keywords || "ללא מפעל") + " · " + state.rows.length + " רשומים\n" + site;
+  a.href = "https://wa.me/?text=" + encodeURIComponent(text);
+  a.hidden = false;
+}
 async function render() {
   $("drop").hidden = true;
   $("cancelUpload").hidden = true;
@@ -394,6 +408,7 @@ async function render() {
     state.name = buildName(state.keywords);
     await saveLatest(state.blob, state.name);
     $("done").textContent = "הקובץ פורסם באתר";
+    setShare();
     loadSaved();
   } catch (e) {
     $("done").textContent = "";
@@ -606,6 +621,7 @@ function closeUpload() {
 function finishClose() {
   $("uploadCard").hidden = true;
   $("result").hidden = true;
+  $("share").hidden = true;
   $("drop").hidden = false;
   $("cancelUpload").hidden = false;
   $("adminBar").hidden = !state.isAdmin;
