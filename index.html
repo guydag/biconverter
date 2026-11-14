@@ -199,6 +199,20 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 #usersSection { display: flex; flex-direction: column; gap: 12px; }
 #usersSection .sec-title { margin: 0; }
 #usersSection .user-form { margin-top: 0; }
+@media (min-width: 520px) {
+  .user-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 14px 18px; }
+  .user-form > strong, .user-form > .note { grid-column: 1 / -1; }
+  .user-form .btn { padding-block: 10px; }
+}
+@media (max-height: 800px) {
+  .head.sub h1 { font-size: 24px; }
+  .setting-row { padding-block: 8px; }
+  .user-row { padding-block: 7px; }
+  .user-form { padding-block: 12px; }
+}
+.help summary { cursor: pointer; font-weight: 600; }
+.help { margin: 0; }
+
 .note { text-wrap: balance; }
 #usersSection .note { margin-top: 12px; }
 .field.inline { width: auto; flex: 1 1 140px; padding: 8px 12px; }
@@ -381,7 +395,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
           <button class="btn primary" type="submit">הוספה</button>
           <p class="note" id="userMsg" hidden></p>
         </form>
-        <p class="note">כאן מנהלים שמות והרשאות. את הסיסמה יוצרים ב-<bdi dir="ltr">Firebase</bdi>, תחת <bdi dir="ltr">Authentication › Add user</bdi>, עם האימייל שיוצג אחרי ההוספה.</p>
+        <details class="note help"><summary>איך מוסיפים משתמש?</summary>כאן מנהלים שמות והרשאות. את הסיסמה יוצרים ב-<bdi dir="ltr">Firebase</bdi>, תחת <bdi dir="ltr">Authentication › Add user</bdi>, עם האימייל שיוצג אחרי ההוספה.</details>
       </div>
 
       <p class="note">נתקלתם בבעיה? אפשר לפנות לגיא, שמתחזק את האתר.</p>
