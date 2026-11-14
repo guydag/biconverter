@@ -36,6 +36,8 @@ async function main() {
       if (wants) (s.tokens || []).forEach((t) => { owners[t] = doc.id; });
     });
     const tokens = Object.keys(owners);
+    let when = "";
+    try { when = f.d.updatedAt.toDate().toLocaleTimeString("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", hour12: false }); } catch (e) {}
     console.log(name + ": sending to", tokens.length, "devices");
     for (let i = 0; i < tokens.length; i += 500) {
       const chunk = tokens.slice(i, i + 500);
@@ -43,8 +45,8 @@ async function main() {
         tokens: chunk,
         webpush: {
           notification: {
-            title: "רשומי משואות",
-            body: "עלה דוח חדש: " + name + " · " + f.d.rows + " רשומים",
+            title: name + " עודכן \uD83D\uDD14",
+            body: "דוח חדש עם " + f.d.rows + " רשומים" + (when ? " (עלה ב־" + when + ")" : ""),
             icon: SITE + "icon-192.png", badge: SITE + "icon-192.png", dir: "rtl", lang: "he"
           },
           fcmOptions: { link: SITE }
