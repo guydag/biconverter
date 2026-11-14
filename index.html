@@ -328,6 +328,8 @@ footer .version { margin-top: 4px; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
 .view, #loginView > * { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+/* Uploading is a desktop task: no upload button on phones. */
+@media (pointer: coarse) and (hover: none) { #adminBar { display: none !important; } }
 #uploadCard.leaving { animation: sink .22s ease both; }
 @keyframes sink { to { opacity: 0; transform: translateY(8px) scale(.98); } }
 #adminBar:not([hidden]) { animation: fade .3s ease both; }
@@ -524,7 +526,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:10";
+var VERSION = "v15.11 · 00:11";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1071,7 +1073,7 @@ function openPreview(d) {
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var sub = rows.slice(1).filter(function (r) { return gs.indexOf(norm(r[gi])) !== -1; }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    hint.textContent = "בקובץ: " + sub.length + " רשומים " + (gs.length === 1 ? "משכבה " : "משכבות ") + gs.join(", ");
+    hint.textContent = "בקובץ: " + sub.length + " רשומים " + (gs.length === 1 ? "משכבת " : "משכבות ") + gs.join(", ");
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
     var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
@@ -1142,7 +1144,7 @@ $("file").addEventListener("change", function (e) { handleFile(e.target.files[0]
 drop.addEventListener("drop", function (e) { e.stopPropagation(); $("veil").hidden = true; handleFile(e.dataTransfer.files[0]); });
 drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
 $("download").addEventListener("click", download);
-function canDrop() { return !!state.isAdmin && !$("app").hidden && !$("viewMain").hidden; }
+function canDrop() { return !isPhone() && !!state.isAdmin && !$("app").hidden && !$("viewMain").hidden; }
 function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") !== -1; }
 window.addEventListener("dragover", function (e) {
   if (!hasFiles(e)) return;
