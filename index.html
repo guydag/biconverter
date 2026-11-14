@@ -477,7 +477,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:50";
+var VERSION = "v14.11 · 23:51";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1003,7 +1003,7 @@ function openPreview(d) {
   var foot = document.createElement("div"); foot.className = "pv-foot";
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = canShareHere() ? "שיתוף" : "הורדה"; var hdr = rows.length ? rows[0].map(String) : [];
   var ready = null;
-  function dlLabel() { return (canShareHere() ? "שיתוף" : "הורדה") + (grade ? " שכבה " + grade : ""); }
+  function dlLabel() { return canShareHere() ? "שיתוף" : "הורדה"; }
   dl.addEventListener("click", async function () {
     if (!grade) { getFile(d); return; }
     var over = null;
