@@ -743,10 +743,18 @@ async function loadSaved() {
     snap.forEach(function (doc) { state.saved.push({ id: doc.id, d: doc.data() }); });
     /* "New" = uploaded by someone else after this user's last visit, stored on the server per user.
        A user with no recorded visit sees nothing marked. */
-    var me = auth.currentUser, ref = me && db.collection("seen").doc((me.email || "").toLowerCase());
-    state.seenAt = 0; state.me = me ? me.email : "";
-    try { var u = await ref.get(); if (u.exists) state.seenAt = tsMs(u.data().at); } catch (e) {}
-    if (ref) ref.set({ at: firebase.firestore.FieldValue.serverTimestamp() }).catch(function () {});
+    /* Read the previous visit once per page load and keep it, so later reloads of the list
+       (after an upload, a token refresh) don't wipe the markers. */
+    var me = auth.currentUser, email = me ? (me.email || "").toLowerCase() : "";
+    if (me && state.seenFor !== email) {
+      state.seenFor = email; state.seenAt = 0; state.me = me.email; state.dismissed = {};
+      state.seenP = (async function () {
+        var ref = db.collection("seen").doc(email);
+        try { var u = await ref.get(); if (u.exists) state.seenAt = tsMs(u.data().at); } catch (e) {}
+        ref.set({ at: firebase.firestore.FieldValue.serverTimestamp() }).catch(function () {});
+      })();
+    }
+    if (state.seenP) await state.seenP;
     renderSaved();
   } catch (e) {
     st.textContent = "לא הצלחנו לטעון את הקבצים השמורים."; st.hidden = false;
@@ -1054,7 +1062,7 @@ auth.onAuthStateChanged(async function (user) {
   $("usersSection").hidden = true;
   $("adminBar").hidden = true;
   $("uploadCard").hidden = true;
-  if (!user) return;
+  if (!user) { state.seenFor = null; return; }
   loadSaved();
   showGreeting(user);
   state.isAdmin = await checkAdmin(user);
