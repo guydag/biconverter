@@ -271,6 +271,16 @@ footer .version { margin-top: 4px; }
 #pushList .setting-row:last-child { border-bottom: 0; }
 .push-follow .btn { align-self: center; margin-top: 8px; }
 .push-card .note { padding: 0 10px; margin: 0; }
+.install-card { padding: 6px 8px; }
+.install-banner { position: relative; display: flex; align-items: center; gap: 12px; background: var(--accent-soft); border-radius: 16px; padding: 12px 14px 12px 44px; }
+.ib-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ib-text strong { font-size: 15px; } .ib-text span { font-size: 13px; color: var(--muted); }
+.install-banner .ib-x { position: absolute; top: 8px; inset-inline-start: 8px; width: 26px; height: 26px; background: transparent; }
+.ih-steps { margin: 0; padding: 0 18px; list-style: none; counter-reset: s; display: grid; gap: 14px; }
+.ih-steps li { counter-increment: s; display: flex; gap: 12px; align-items: center; font-size: 16px; }
+.ih-steps li::before { content: counter(s); flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.ih-steps svg { vertical-align: -4px; color: var(--accent); }
+.ih-body { padding: 16px 0 6px; }
 .help summary { cursor: pointer; font-weight: 600; }
 .help { margin: 0; }
 
@@ -386,6 +396,12 @@ footer .version { margin-top: 4px; }
       </button>
     </div>
 
+    <div class="install-banner" id="installBanner" hidden>
+      <div class="ib-text"><strong>הוסיפו למסך הבית</strong><span>גישה מהירה, כמו אפליקציה.</span></div>
+      <button class="btn primary small" id="installBannerBtn" type="button">הוספה</button>
+      <button class="close-x ib-x" id="installBannerX" type="button" aria-label="סגירה" title="סגירה"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+
     <section class="card" id="uploadCard" hidden>
       <label class="drop" id="drop" tabindex="0" for="file">
         <span class="icon" aria-hidden="true">
@@ -439,6 +455,13 @@ footer .version { margin-top: 4px; }
         <div class="setting-row">
           <div class="setting-text"><strong>מצב כהה</strong><span>רקע כהה, נוח יותר לעיניים בלילה.</span></div>
           <button class="switch" id="darkSwitch" type="button" role="switch" aria-checked="false" aria-label="מצב כהה"></button>
+        </div>
+      </section>
+
+      <section class="card install-card" id="installCard" hidden>
+        <div class="setting-row">
+          <div class="setting-text"><strong>התקנה כאפליקציה</strong><span>פתיחה במגע אחד ממסך הבית, בלי דפדפן.</span></div>
+          <button class="btn primary small" id="installBtn" type="button">התקנה</button>
         </div>
       </section>
 
@@ -501,7 +524,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:04";
+var VERSION = "v15.11 · 00:07";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1208,7 +1231,7 @@ async function pushInit() {
   sec.hidden = false;
   if (isIOS() && !isStandalone()) {
     $("pushBtn").hidden = true; $("pushFollow").hidden = true;
-    pushNote("באייפון ההתראות עובדות רק מהאתר שהוספתם למסך הבית: בדפדפן לוחצים על שיתוף ואז על \u201Cהוספה למסך הבית\u201D, ופותחים את האתר משם.");
+    pushNote("באייפון ההתראות עובדות רק מהאתר שהוספתם למסך הבית. לחצו על \u201Cהתקנה\u201D למעלה ופתחו את האתר מהאייקון.");
     return;
   }
   if (!(await pushSupported())) { $("pushBtn").hidden = true; pushNote("הדפדפן הזה לא תומך בהתראות."); return; }
@@ -1244,6 +1267,57 @@ $("pushOff").addEventListener("click", async function () {
   } catch (e) {}
   push.token = ""; pushNote("ההתראות כבויות במכשיר הזה."); pushRender();
 });
+
+/* "Add to home screen": a real install prompt on Android, step-by-step help on iPhone and anywhere else. */
+var deferredInstall = null;
+window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferredInstall = e; });
+window.addEventListener("appinstalled", function () { deferredInstall = null; installInit(); });
+function installNeeded() { return isPhone() && !isStandalone(); }
+function installInit() {
+  var need = installNeeded() && !!auth && !!auth.currentUser;
+  $("installCard").hidden = !need;
+  var dismissed = false; try { dismissed = localStorage.getItem("installBannerDismissed") === "1"; } catch (e) {}
+  $("installBanner").hidden = !need || dismissed;
+}
+function installAction() {
+  if (deferredInstall) {
+    var p = deferredInstall; deferredInstall = null;
+    p.prompt(); if (p.userChoice) p.userChoice.then(function () { installInit(); });
+    return;
+  }
+  openInstallHelp();
+}
+function openInstallHelp() {
+  closePreview(true);
+  var ios = isIOS();
+  var ov = document.createElement("div"); ov.className = "pv-overlay"; ov.id = "pvOverlay";
+  var box = document.createElement("div"); box.className = "pv-box"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "הוספה למסך הבית");
+  var head = document.createElement("div"); head.className = "pv-head";
+  var tt = document.createElement("div"); tt.className = "pv-title"; var h = document.createElement("strong"); h.textContent = "הוספה למסך הבית"; tt.appendChild(h);
+  var sub = document.createElement("span"); sub.textContent = ios ? "בספארי, שלושה צעדים" : "בכרום, שלושה צעדים"; tt.appendChild(sub);
+  var x = document.createElement("button"); x.type = "button"; x.className = "close-x pv-x"; x.setAttribute("aria-label", "סגירה"); x.title = "סגירה";
+  x.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  x.addEventListener("click", function () { closePreview(); });
+  head.appendChild(tt); head.appendChild(x);
+  var body = document.createElement("div"); body.className = "ih-body";
+  var ol = document.createElement("ol"); ol.className = "ih-steps";
+  var steps = ios
+    ? ["לוחצים על כפתור השיתוף " + SHARE_ICON + " בתחתית המסך", "בוחרים \u201Cהוספה למסך הבית\u201D", "לוחצים \u201Cהוספה\u201D, ופותחים את האתר מהאייקון החדש"]
+    : ["לוחצים על תפריט הדפדפן (שלוש נקודות) בפינה", "בוחרים \u201Cהתקנת אפליקציה\u201D או \u201Cהוספה למסך הבית\u201D", "מאשרים, ופותחים את האתר מהאייקון החדש"];
+  steps.forEach(function (t) { var li = document.createElement("li"); var sp = document.createElement("span"); sp.innerHTML = t; li.appendChild(sp); ol.appendChild(li); });
+  body.appendChild(ol);
+  var foot = document.createElement("div"); foot.className = "pv-foot";
+  var ok = document.createElement("button"); ok.type = "button"; ok.className = "btn primary small"; ok.textContent = "הבנתי"; ok.addEventListener("click", function () { closePreview(); });
+  foot.appendChild(ok);
+  box.appendChild(head); box.appendChild(body); box.appendChild(foot); ov.appendChild(box);
+  ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
+  document.body.appendChild(ov);
+  document.documentElement.classList.add("pv-open");
+  void ov.offsetWidth; ov.classList.add("in"); ok.focus({ preventScroll: true });
+}
+$("installBtn").addEventListener("click", installAction);
+$("installBannerBtn").addEventListener("click", installAction);
+$("installBannerX").addEventListener("click", function () { try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {} $("installBanner").hidden = true; });
 /* Settings view, shown at #settings. */
 function route() {
   var onSettings = location.hash === "#settings";
@@ -1422,9 +1496,10 @@ auth.onAuthStateChanged(async function (user) {
   $("usersSection").hidden = true;
   $("adminBar").hidden = true;
   $("uploadCard").hidden = true;
-  if (!user) { state.seenFor = null; return; }
+  if (!user) { state.seenFor = null; installInit(); return; }
   loadSaved();
   showGreeting(user);
+  installInit();
   state.isAdmin = await checkAdmin(user);
   $("adminBar").hidden = !state.isAdmin;
   if (state.saved) renderSaved();
