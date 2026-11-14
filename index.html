@@ -192,7 +192,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .user-row .who { display: flex; flex-direction: column; min-width: 0; }
 .user-row .who { gap: 2px; }
 .user-row .who strong { overflow-wrap: anywhere; }
-.user-row .who span { color: var(--muted); font-size: 13px; direction: ltr; text-align: start; overflow-wrap: anywhere; }
+.user-row .who span { display: block; color: var(--muted); font-size: 13px; direction: ltr; text-align: right; overflow-wrap: anywhere; }
 .user-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .user-actions .btn, .user-row > .btn { padding: 6px 14px; font-size: 14px; border-radius: 10px; }
 .user-form .btn { max-width: none; }
@@ -550,7 +550,7 @@ async function render() {
       showError("כבר קיים באתר קובץ חדש יותר של המפעל הזה, לכן הקובץ הזה לא פורסם. אפשר עדיין להוריד אותו.");
       return;
     }
-    $("done").textContent = "הקובץ פורסם באתר";
+    $("done").textContent = "";
     setShare();
     loadSaved();
   } catch (e) {
