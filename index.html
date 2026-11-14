@@ -222,6 +222,10 @@ footer .version { margin-top: 4px; }
 .pv-title strong { font-size: 18px; overflow-wrap: anywhere; }
 .pv-title span { color: var(--muted); font-size: 13px; }
 .pv-head .pv-x { position: static; flex: none; }
+.pv-search { padding: 10px 14px 6px; }
+.pv-search .field { margin: 0; }
+.pv-none { text-align: center; padding: 18px; }
+.pv-table tr[hidden] { display: none; }
 .pv-table { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .pv-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .pv-table th { position: sticky; top: 0; background: var(--surface); text-align: start; font-size: 13px; color: var(--muted); font-weight: 600; padding: 9px 18px; border-bottom: 1px solid var(--line); }
@@ -444,7 +448,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v14.11 · 23:25";
+var VERSION = "v14.11 · 23:30";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -857,6 +861,9 @@ function openPreview(d) {
   x.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   x.addEventListener("click", function () { closePreview(); });
   head.appendChild(tt); head.appendChild(x);
+  var sw = document.createElement("div"); sw.className = "pv-search";
+  var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
+  sw.appendChild(si);
   var wrap = document.createElement("div"); wrap.className = "pv-table";
   var t = document.createElement("table");
   rows.forEach(function (r, i) {
@@ -865,17 +872,28 @@ function openPreview(d) {
     (i === 0 ? (t.tHead || t.createTHead()) : (t.tBodies[0] || t.createTBody())).appendChild(tr);
   });
   wrap.appendChild(t);
+  var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
+  wrap.appendChild(none);
+  si.addEventListener("input", function () {
+    var q = si.value.trim().toLowerCase(), shown = 0;
+    Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
+      var hit = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      tr.hidden = !hit; if (hit) shown++;
+    });
+    none.hidden = shown > 0;
+    wrap.scrollTop = 0;
+  });
   var foot = document.createElement("div"); foot.className = "pv-foot";
   var dl = document.createElement("button"); dl.type = "button"; dl.className = "btn primary small"; dl.textContent = "הורדה";
   dl.addEventListener("click", function () { saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {}); });
   foot.appendChild(dl);
-  box.appendChild(head); box.appendChild(wrap); box.appendChild(foot);
+  box.appendChild(head); box.appendChild(sw); box.appendChild(wrap); box.appendChild(foot);
   ov.appendChild(box);
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
   document.body.appendChild(ov);
   document.documentElement.classList.add("pv-open");
   requestAnimationFrame(function () { ov.classList.add("in"); });
-  x.focus();
+  if (rows.length > 8) si.focus(); else x.focus();
 }
 function closePreview(instant) {
   var ov = $("pvOverlay");
