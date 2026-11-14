@@ -152,15 +152,25 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .user-row:last-child { border-bottom: 0; }
 .user-row .who { display: flex; flex-direction: column; min-width: 0; }
+.user-row .who { gap: 2px; }
 .user-row .who strong { overflow-wrap: anywhere; }
 .user-row .who span { color: var(--muted); font-size: 13px; direction: ltr; text-align: start; overflow-wrap: anywhere; }
-.role-chip { display: inline-block; margin-inline-start: 8px; padding: 1px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
 .user-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.user-actions .btn, .user-row > .btn { padding: 6px 14px; font-size: 14px; border-radius: 10px; }
+.user-form .btn { max-width: none; }
+#usersSection { display: flex; flex-direction: column; gap: 12px; }
+#usersSection .sec-title { margin: 0; }
+#usersSection .user-form { margin-top: 0; }
+.note { text-wrap: balance; }
 #usersSection .note { margin-top: 12px; }
 .field.inline { width: auto; flex: 1 1 140px; padding: 8px 12px; }
 .search-wrap { padding: 8px 8px 4px; }
 .search { padding: 10px 14px; font-size: 15px; }
-.new-badge { display: inline-block; margin-inline-start: 8px; padding: 1px 9px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 12px; font-weight: 700; vertical-align: middle; animation: pop .4s cubic-bezier(.3,1.5,.5,1) both; }
+.name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.tag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; line-height: 1.5; white-space: nowrap; }
+.saved-info .tag, .user-row .who .tag { color: var(--accent); font-size: 12px; }
+.tag.new::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.tag.new { animation: fade .5s ease both; }
 .del-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
 .del-btn:hover { background: var(--err-soft); color: var(--err); border-color: var(--err); }
 .confirm-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%; }
@@ -332,7 +342,7 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
           <button class="btn primary" type="submit">הוספה</button>
           <p class="note" id="userMsg" hidden></p>
         </form>
-        <p class="note">כאן מנהלים שמות והרשאות. את הכניסה עצמה (הסיסמה) יוצרים ב-Firebase, ב-Authentication ואז Add user, עם האימייל שמוצג אחרי ההוספה.</p>
+        <p class="note">כאן מנהלים שמות והרשאות. את הסיסמה יוצרים ב-<bdi dir="ltr">Firebase</bdi>, תחת <bdi dir="ltr">Authentication › Add user</bdi>, עם האימייל שיוצג אחרי ההוספה.</p>
       </div>
 
       <p class="note">נתקלתם בבעיה? אפשר לפנות לגיא, שמתחזק את האתר.</p>
@@ -690,11 +700,12 @@ function renderSaved() {
     var row = document.createElement("div"); row.className = "saved";
     var info = document.createElement("div"); info.className = "saved-info";
     var t = document.createElement("strong"); t.textContent = d.name;
+    var nr = document.createElement("div"); nr.className = "name-row"; nr.appendChild(t);
     if (state.seen && !(state.seen[x.id] >= tsMs(d.updatedAt))) {
-      var nb = document.createElement("span"); nb.className = "new-badge"; nb.textContent = "חדש"; t.appendChild(nb);
+      var nb = document.createElement("span"); nb.className = "tag new"; nb.textContent = "חדש"; nr.appendChild(nb);
     }
     var m = document.createElement("span"); m.textContent = fileStamp(d.fileName, d.updatedAt) + " · " + d.rows + " רשומים";
-    info.appendChild(t); info.appendChild(m);
+    info.appendChild(nr); info.appendChild(m);
     var b = document.createElement("button"); b.type = "button"; b.className = "btn ghost small"; b.textContent = "הורדה";
     b.addEventListener("click", function () {
       saveBlob(base64ToBlob(d.data), d.fileName).catch(function () {});
@@ -841,9 +852,10 @@ function renderUsers() {
     var row = document.createElement("div"); row.className = "user-row";
     var who = document.createElement("div"); who.className = "who";
     var strong = document.createElement("strong"); strong.textContent = u.name || "(ללא שם)";
-    if (u.admin) { var c = document.createElement("span"); c.className = "role-chip"; c.textContent = "מנהל"; strong.appendChild(c); }
+    var nr = document.createElement("div"); nr.className = "name-row"; nr.appendChild(strong);
+    if (u.admin) { var c = document.createElement("span"); c.className = "tag"; c.textContent = "מנהל"; nr.appendChild(c); }
     var sp = document.createElement("span"); sp.textContent = shortId(u.id);
-    who.appendChild(strong); who.appendChild(sp);
+    who.appendChild(nr); who.appendChild(sp);
     var acts = document.createElement("div"); acts.className = "user-actions";
     var self = u.id === me;
     if (!self) acts.appendChild(mkBtn(u.admin ? "ביטול ניהול" : "הפיכה למנהל", "ghost", async function () {
@@ -880,7 +892,15 @@ function askRemove(row, u) {
     catch (e) { userMsg("ההסרה לא הצליחה."); renderUsers(); }
   }));
 }
-function userMsg(t) { var m = $("userMsg"); m.textContent = t; m.hidden = false; }
+function userMsg(t, ltrBits) {
+  var m = $("userMsg"); m.textContent = "";
+  var parts = t.split("%s"), i = 0;
+  parts.forEach(function (p, k) {
+    m.appendChild(document.createTextNode(p));
+    if (k < parts.length - 1) { var b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = (ltrBits || [])[i++] || ""; m.appendChild(b); }
+  });
+  m.hidden = false;
+}
 $("userForm").addEventListener("submit", async function (ev) {
   ev.preventDefault();
   var id = loginId($("newUser").value), name = $("newName").value.trim();
@@ -888,7 +908,7 @@ $("userForm").addEventListener("submit", async function (ev) {
   try {
     await db.collection("users").doc(id).set({ name: name });
     if ($("newAdmin").checked) await db.collection("admins").doc(id).set({ role: "admin" });
-    userMsg("נוסף. כדי שיוכל להיכנס, ב-Firebase (Authentication ← Add user) יוצרים משתמש עם האימייל " + id + " וסיסמה.");
+    userMsg("נוסף. כדי שיוכל להיכנס, יוצרים ב-%s משתמש עם האימייל %s וסיסמה.", ["Firebase › Authentication › Add user", id]);
     $("userForm").reset();
     loadUsers();
   } catch (e) { userMsg("ההוספה לא הצליחה."); }
