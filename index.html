@@ -501,7 +501,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:00";
+var VERSION = "v15.11 · 00:03";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1164,7 +1164,7 @@ $("reset").addEventListener("click", closeUpload);
 
 /* Push notifications (phones only): a device token and the chosen factories are kept in subs/{email}. */
 var VAPID_KEY = "BFCvIJVe_vLkaNJeUzglB8P4J9-NtZSJBVCL7tm1yhZj1N_vx3RGmADQlZX8xDsc3rEy2rpO5ucpXQRK8iceuug";
-var PUSH_ENABLED = false; /* switched on once the sending function is deployed */
+var PUSH_ENABLED = true;
 var push = { sub: { all: true, follows: [] }, token: "", msg: null };
 function isPhone() { try { return matchMedia("(pointer: coarse)").matches && matchMedia("(hover: none)").matches; } catch (e) { return false; } }
 function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
