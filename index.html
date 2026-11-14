@@ -501,7 +501,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 00:03";
+var VERSION = "v15.11 · 00:04";
 Array.prototype.forEach.call(document.querySelectorAll("[data-version]"), function (e) { e.textContent = VERSION; });
 var state = { rows: [], keywords: "", stamp: "" };
 
@@ -1035,14 +1035,15 @@ function openPreview(d) {
   function dlLabel() { return canShareHere() ? "שיתוף" : "הורדה"; }
   var hint = document.createElement("span"); hint.className = "pv-hint";
   dl.addEventListener("click", async function () {
-    if (!grades.length) { getFile(d); return; }
+    if (!grades.length || grades.length >= order.length) { getFile(d); return; }
     var over = null;
     try { over = await ready; } catch (e) {}
     getFile(d, over || undefined);
   });
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
-    if (!grades.length) { hint.textContent = ""; return; }
+    /* Every grade selected is the same as no filter: the regular, full file. */
+    if (!grades.length || grades.length >= order.length) { hint.textContent = ""; return; }
     var gs = order.filter(function (g) { return grades.indexOf(g) !== -1; });
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
