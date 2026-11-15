@@ -36,8 +36,8 @@ async function main() {
       if (wants) (s.tokens || []).forEach((t) => { owners[t] = doc.id; });
     });
     const tokens = Object.keys(owners);
-    let when = "";
-    try { when = f.d.updatedAt.toDate().toLocaleTimeString("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", hour12: false }); } catch (e) {}
+    const nNew = Array.isArray(f.d.fresh) ? f.d.fresh.length : 0;
+    const body = (nNew === 0 ? "דוח חדש" : nNew === 1 ? "נרשם חדש אחד" : "נרשמו " + nNew + " חדשים") + " · " + f.d.rows + " רשומים בדוח";
     console.log(name + ": sending to", tokens.length, "devices");
     for (let i = 0; i < tokens.length; i += 500) {
       const chunk = tokens.slice(i, i + 500);
@@ -46,7 +46,7 @@ async function main() {
         webpush: {
           notification: {
             title: name + " עודכן \uD83D\uDD14",
-            body: "דוח חדש עם " + f.d.rows + " רשומים" + (when ? " (עלה ב־" + when + ")" : ""),
+            body: body,
             icon: SITE + "icon-192.png?v=3", badge: SITE + "icon-192.png?v=3", dir: "rtl", lang: "he"
           },
           fcmOptions: { link: SITE + "#r=" + encodeURIComponent(name) }
