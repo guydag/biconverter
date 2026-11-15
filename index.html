@@ -614,7 +614,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:09";
+var VERSION = "v15.11 · 02:12";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1273,6 +1273,7 @@ function openPreview(d) {
   }
   function prepareGrade() {
     ready = null; dl.textContent = dlLabel();
+    dl.disabled = false;
     /* Every grade selected is the same as no filter: the regular, full file. */
     var gradeOn = grades.length && grades.length < order.length;
     if (!gradeOn && !newOnly && !goneOnly) { hint.textContent = "סה\u05F4כ: " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
@@ -1281,6 +1282,7 @@ function openPreview(d) {
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
     var srcRows = goneOnly ? goneList.map(function (g) { var a = []; a[fi] = g[0]; a[li] = g[1]; a[gi] = g[2]; return a; }) : rows.slice(1);
     var sub = srcRows.filter(function (r) { return (!gradeOn || gs.indexOf(norm(r[gi])) !== -1) && (!newOnly || freshSet[personKey(r[0], r[1], r[2])]); }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
+    if (!sub.length) { dl.disabled = true; hint.textContent = "אין רשומים לייצוא"; return; }
     hint.textContent = "בקובץ: " + sub.length + (newOnly ? " רשומים חדשים" : goneOnly ? " רשומים שביטלו" : " רשומים") + (gradeOn ? (gs.length === 1 ? " משכבת " : " משכבות ") + gradeText(gs) : "");
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
