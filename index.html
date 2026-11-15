@@ -14,10 +14,13 @@
   .status { min-height: 0; margin: 0; }
 }
 .pv-table.marks tr.fresh td { background: var(--accent-soft); }
-.pv-table.marks td.newcell::after { content: "חדש"; display: block; width: max-content; margin: 4px 0 0; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; }
 .pv-changes { display: flex; gap: 8px; padding: 2px 0 4px; }
-.pv-table td.gonecell::after { content: "ביטל הרשמה"; display: block; width: max-content; margin: 4px 0 0; padding: 1px 7px; border-radius: 999px; background: var(--err); color: #fff; font-size: 11px; font-weight: 700; }
+.pv-table td.tagcell { position: relative; }
+.pv-table.marks td.newcell::after, .pv-table td.gonecell::after { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.pv-table.marks td.newcell::after { content: "חדש"; background: var(--accent); color: var(--accent-fg); }
+.pv-table td.gonecell::after { content: "ביטל הרשמה"; background: var(--err); color: #fff; }
 .pv-table tr.gone td { background: var(--err-soft); }
+.pv-table.tagged td, .pv-headrow.tagged th { padding-inline: 12px; }
 .chip.chg { flex: 1 1 0; justify-content: center; font-weight: 700; }
 .chip.chg-new:not(.on) { color: var(--accent); border-color: var(--accent); }
 .chip.chg-gone:not(.on) { color: var(--muted); }
@@ -590,7 +593,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:36";
+var VERSION = "v15.11 · 02:39";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1173,9 +1176,15 @@ function openPreview(d) {
   /* The header is its own non-scrolling table above the list, so it never overlaps the rows (sticky headers misbehave on iOS). */
   var cols = rows.length ? rows[0].length : 0;
   var widths = cols === 3 ? [38, 38, 24] : Array.apply(null, Array(cols)).map(function () { return 100 / cols; });
+  function tagCell() { return gi !== -1 && gi < cols ? gi : Math.max(cols - 1, 0); }
+  var colEls = [];
+  function setCols(tagged) {
+    var w = tagged && cols === 3 ? [26, 34, 40] : widths;
+    colEls.forEach(function (c, i) { c.style.width = w[i % cols] + "%"; });
+  }
   function mkTable() {
     var tb = document.createElement("table"), cg = document.createElement("colgroup");
-    widths.forEach(function (w) { var c = document.createElement("col"); c.style.width = w + "%"; cg.appendChild(c); });
+    widths.forEach(function (w) { var c = document.createElement("col"); c.style.width = w + "%"; cg.appendChild(c); colEls.push(c); });
     tb.appendChild(cg); return tb;
   }
   var headRow = document.createElement("div"); headRow.className = "pv-headrow";
@@ -1188,7 +1197,7 @@ function openPreview(d) {
     r.forEach(function (c) { var td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
     if (freshSet[personKey(r[0], r[1], r[2])]) {
       tr.className = "fresh";
-      tr.cells[Math.min(1, tr.cells.length - 1)].className = "newcell";
+      tr.cells[tagCell()].className = "tagcell newcell";
     }
     tbd.appendChild(tr);
   });
@@ -1197,11 +1206,12 @@ function openPreview(d) {
   goneList.forEach(function (g) {
     var tr = document.createElement("tr"); tr.className = "gone"; tr.hidden = true;
     for (var ci = 0; ci < cols; ci++) { var td = document.createElement("td"); td.textContent = ci === fiG ? g[0] : ci === liG ? g[1] : ci === gi ? g[2] : ""; tr.appendChild(td); }
-    if (tr.cells[liG]) tr.cells[liG].className = "gonecell";
+    if (tr.cells[tagCell()]) tr.cells[tagCell()].className = "tagcell gonecell";
     tbd.appendChild(tr);
   });
   wrap.appendChild(t);
   wrap.classList.toggle("marks", marks && nFresh > 0);
+  wrap.classList.toggle("tagged", marks && nFresh > 0); headRow.classList.toggle("tagged", marks && nFresh > 0); setCols(marks && nFresh > 0);
   pvFreshKey = nFresh ? [freshKey, freshStamp] : null;
   var none = document.createElement("p"); none.className = "note pv-none"; none.textContent = "לא נמצאו תוצאות."; none.hidden = true;
   wrap.appendChild(none);
@@ -1222,6 +1232,8 @@ function openPreview(d) {
     if (grades.length && grades.length < order.length) what.push((grades.length === 1 ? "שכבה " : "שכבות ") + gradeText(order.filter(function (g) { return grades.indexOf(g) !== -1; })));
     count.textContent = active ? (what.length ? what.join(" · ") + " — " : "") + (goneOnly ? shown + " רשומים" : shown + " מתוך " + total + " רשומים") : (marks && nFresh ? freshLine() : "");
     wrap.classList.toggle("marks", (marks || newOnly) && nFresh > 0);
+    var tagged = ((marks || newOnly) && nFresh > 0) || goneOnly;
+    wrap.classList.toggle("tagged", tagged); headRow.classList.toggle("tagged", tagged); setCols(tagged);
     wrap.scrollTop = 0;
     softSwap(wrap);
   }
