@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fffaf3">
+<title>הרשמה · רשומי משואות</title>
+<link rel="icon" href="icon-192.png">
+<style>
+:root { --bg:#fffaf3; --surface:#fff; --fg:#2a1f1b; --muted:#75665e; --line:#eadfd2; --wash:#ffe9d2; --accent:#d4500f; --accent-fg:#fff; --accent-soft:#ffeadb; --err:#b3261e; --err-soft:#fde8e6; --ok:#1d7a4d; --ok-soft:#e3f4ea; --shadow:0 1px 2px rgba(60,30,10,.06),0 12px 32px rgba(60,30,10,.08); color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1f2430; --surface:#2a3040; --fg:#e9ecf3; --muted:#9fa8ba; --line:#3a4256; --wash:#262c3b; --accent:#ffa05f; --accent-fg:#2a1304; --accent-soft:#44372f; --err:#ff8f86; --err-soft:#3d2530; --ok:#5fd09a; --ok-soft:#1f3a33; --shadow:0 12px 32px rgba(0,0,0,.3); color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin:0; background: var(--bg) linear-gradient(180deg, var(--wash) 0, var(--bg) 360px) no-repeat; color:var(--fg); font-family: "Assistant", system-ui, -apple-system, "Segoe UI", Arial, sans-serif; font-size:16px; line-height:1.55; padding: 28px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); min-height:100dvh; }
+.wrap { max-width: 520px; margin: 0 auto; animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes rise { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+.top { display:flex; justify-content:flex-start; margin-bottom: 8px; }
+.back { color: var(--muted); text-decoration:none; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:6px; padding:8px 4px; }
+.back:hover { color: var(--accent); }
+.head { text-align:center; margin: 4px 0 22px; }
+.logo { width:108px; height:108px; border-radius:50%; box-shadow: var(--shadow); background:#fff; }
+h1 { margin: 14px 0 4px; font-size: 26px; line-height:1.2; }
+.lead { margin:0; color: var(--muted); }
+.card { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); padding: 22px 20px 20px; display:flex; flex-direction:column; gap: 18px; }
+.steps { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+.steps b { display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background: var(--accent); color: var(--accent-fg); font-size:12px; }
+label.l { display:block; font-weight:700; font-size:14.5px; margin-bottom:6px; }
+label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
+.f { width:100%; font: inherit; color: inherit; background: var(--bg); border:1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 48px; transition: border-color .15s, box-shadow .15s; }
+.f:focus { outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.f[dir=ltr] { text-align:left; }
+.f[aria-invalid=true] { border-color: var(--err); }
+.row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 440px) { .row { grid-template-columns: 1fr; } }
+.msg { margin-top:6px; font-size:13px; color: var(--err); min-height:0; }
+.msg:empty { display:none; }
+.roles { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; }
+.roles input { position:absolute; opacity:0; pointer-events:none; }
+.roles label { display:grid; place-items:center; min-height:48px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; cursor:pointer; background: var(--bg); transition: all .15s; }
+.roles input:checked + label { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.roles input:focus-visible + label { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.btn { font: inherit; font-weight:800; font-size:17px; border:0; border-radius: 14px; min-height: 52px; background: var(--accent); color: var(--accent-fg); cursor:pointer; transition: transform .15s, filter .15s; }
+.btn:hover { filter: brightness(1.06); } .btn:active { transform: scale(.98); }
+.btn[disabled] { opacity:.6; cursor:default; }
+.err { background: var(--err-soft); color: var(--err); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+.done { text-align:center; padding: 18px 8px 8px; }
+.done .tick { width:64px; height:64px; margin: 0 auto 14px; border-radius:50%; background: var(--ok-soft); color: var(--ok); display:grid; place-items:center; animation: pop .5s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes pop { from { opacity:0; transform: scale(.6); } to { opacity:1; transform:none; } }
+.done h2 { margin: 0 0 6px; font-size: 22px; } .done p { margin: 0; color: var(--muted); }
+.foot { text-align:center; margin-top:18px; font-size:13px; color: var(--muted); }
+[hidden] { display:none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="back" href="./">&rarr; חזרה לכניסה</a></div>
+  <header class="head">
+    <img class="logo" src="logo.png?v=1" alt="לוגו שבט משואות יהוד" width="108" height="108">
+    <h1>הרשמה לאתר רשומי משואות</h1>
+    <p class="lead">מלאו את הפרטים כדי לקבל גישה לאתר.</p>
+  </header>
+  <form class="card" id="f" novalidate autocomplete="off">
+    <div class="steps"><b>1</b> ממלאים פרטים <span>·</span> <b style="background:var(--line);color:var(--muted)">2</b> ממתינים לאישור מנהל</div>
+    <div>
+      <label class="l" for="idn">תעודת זהות</label>
+      <input class="f" id="idn" inputmode="numeric" maxlength="9" dir="ltr" placeholder="9 ספרות" required>
+      <div class="msg" id="m-idn"></div>
+    </div>
+    <div>
+      <label class="l" for="full">שם מלא <small>בעברית</small></label>
+      <input class="f" id="full" placeholder="פרטי ומשפחה" required>
+      <div class="msg" id="m-full"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label class="l" for="first">שם פרטי <small>באנגלית</small></label>
+        <input class="f" id="first" dir="ltr" autocapitalize="words" spellcheck="false" placeholder="First name" required>
+        <div class="msg" id="m-first"></div>
+      </div>
+      <div>
+        <label class="l" for="last">שם משפחה <small>באנגלית</small></label>
+        <input class="f" id="last" dir="ltr" autocapitalize="words" spellcheck="false" placeholder="Last name" required>
+        <div class="msg" id="m-last"></div>
+      </div>
+    </div>
+    <div>
+      <span class="l" style="display:block;font-weight:700;font-size:14.5px;margin-bottom:6px">תפקיד</span>
+      <div class="roles" role="radiogroup" aria-label="תפקיד">
+        <input type="radio" name="role" id="r1" value="מרכז"><label for="r1">מרכז</label>
+        <input type="radio" name="role" id="r2" value="ראשגד"><label for="r2">ראשגד</label>
+        <input type="radio" name="role" id="r3" value="ראשצ"><label for="r3">ראשצ</label>
+      </div>
+      <div class="msg" id="m-role"></div>
+    </div>
+    <div class="err" id="err" role="alert" hidden></div>
+    <button class="btn" id="go" type="submit">שליחת בקשה</button>
+  </form>
+  <section class="card done" id="done" hidden>
+    <div class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2>הבקשה נשלחה</h2>
+    <p>מנהל יאשר את הבקשה ויצור לכם משתמש. פרטי הכניסה יימסרו אליכם בנפרד.</p>
+  </section>
+  <p class="foot">הפרטים נשמרים באתר ונגישים רק למנהלים.</p>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({ apiKey: "AIzaSyABd26IEKadfnCKTyVezfD4upQOLu8XxNE", authDomain: "mishuot.firebaseapp.com", projectId: "mishuot", storageBucket: "mishuot.firebasestorage.app", messagingSenderId: "771775436102", appId: "1:771775436102:web:e1c8ef6a1cea1b95fdc147" });
+var db = firebase.firestore();
+function $(i) { return document.getElementById(i); }
+function validId(v) {
+  if (!/^\d{9}$/.test(v)) return false;
+  var sum = 0;
+  for (var i = 0; i < 9; i++) { var n = Number(v[i]) * (i % 2 ? 2 : 1); sum += n > 9 ? n - 9 : n; }
+  return sum % 10 === 0;
+}
+function fail(id, text) { $("m-" + id).textContent = text; var el = $(id); if (el) el.setAttribute("aria-invalid", "true"); return false; }
+function clear() { Array.prototype.forEach.call(document.querySelectorAll(".msg"), function (m) { m.textContent = ""; }); Array.prototype.forEach.call(document.querySelectorAll(".f"), function (f) { f.removeAttribute("aria-invalid"); }); $("err").hidden = true; }
+$("idn").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 9); });
+$("f").addEventListener("submit", async function (ev) {
+  ev.preventDefault(); clear();
+  var idn = $("idn").value.trim(), full = $("full").value.trim().replace(/\s+/g, " "), first = $("first").value.trim(), last = $("last").value.trim();
+  var rb = document.querySelector('input[name=role]:checked'), ok = true;
+  if (!validId(idn)) ok = fail("idn", "תעודת הזהות אינה תקינה.") && ok;
+  if (full.split(" ").length < 2 || !/[֐-׿]/.test(full)) ok = fail("full", "נא לכתוב שם פרטי ושם משפחה בעברית.") && ok;
+  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(first)) ok = fail("first", "נא לכתוב באותיות באנגלית.") && ok;
+  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(last)) ok = fail("last", "נא לכתוב באותיות באנגלית.") && ok;
+  if (!rb) { $("m-role").textContent = "נא לבחור תפקיד."; ok = false; }
+  if (!ok) return;
+  var btn = $("go"); btn.disabled = true; btn.textContent = "שולח…";
+  try {
+    await db.collection("pending").doc(idn).set({ idNumber: idn, fullName: full, first: first, last: last, role: rb.value, at: firebase.firestore.FieldValue.serverTimestamp() });
+    $("f").hidden = true; $("done").hidden = false; window.scrollTo(0, 0);
+  } catch (e) {
+    var dup = e && e.code === "permission-denied";
+    $("err").textContent = dup ? "בקשה עם תעודת זהות זו כבר נשלחה וממתינה לאישור." : "השליחה לא הצליחה. נסו שוב בעוד רגע.";
+    $("err").hidden = false; btn.disabled = false; btn.textContent = "שליחת בקשה";
+  }
+});
+</script>
+</body>
+</html>
