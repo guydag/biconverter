@@ -112,7 +112,7 @@ footer { margin-top: auto; }
   .sec-title { margin: 0; }
 }
 @media (max-height: 700px) { .lead { display: none; } footer { display: none; } }
-#usersList { max-height: 40vh; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#usersList { max-height: none; overflow: visible; }
 @media (max-height: 950px) {
   .result { padding: 14px 12px 12px; gap: 8px; }
   .result .icon { width: 44px; height: 44px; }
@@ -127,7 +127,7 @@ footer { margin-top: auto; }
 @media (max-height: 520px) { .result { padding: 8px 12px; gap: 6px; } .result .icon { display: none; } .result h2 { font-size: 17px; margin: 0; } .result .btn { padding-block: 7px; } }
 #viewSettings { flex: 1 1 auto; min-height: 0; }
 .settings-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: inherit; margin: 0 -8px; padding: 4px 8px 8px; }
-#usersList { max-height: 40vh; }
+#usersList { max-height: none; }
 /* While a file is being uploaded the page header shrinks so nothing spills past the screen. */
 #viewMain:has(#uploadCard:not([hidden])) .lead, #viewMain:has(#uploadCard:not([hidden])) footer { display: none; }
 #viewMain:has(#uploadCard:not([hidden])) #savedCard { min-height: 0; }
@@ -370,6 +370,8 @@ footer .version { margin-top: 4px; }
 .pw-msg { margin: 0; text-align: center; }
 .pw-msg.err { color: var(--err); } .pw-msg.ok { color: var(--ok); }
 .share-card { gap: 14px; }
+.sec-title.grp { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .02em; margin: 8px 4px -6px; }
+.share-copy.share-go2 { padding: 8px 12px; background: var(--accent); color: var(--accent-fg); }
 .share-link { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 6px; border: 1.5px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--bg) 60%, var(--surface)); }
 .share-url { flex: 1; min-width: 0; padding: 4px 10px; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .share-copy { flex: none; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 700; padding: 8px 14px; border: 0; border-radius: 10px; cursor: pointer; background: var(--accent-soft); color: var(--accent); transition: filter .15s, transform .15s; }
@@ -559,6 +561,7 @@ footer .version { margin-top: 4px; }
       </header>
       <div class="settings-body" id="settingsBody">
 
+      <h2 class="sec-title grp">העדפות</h2>
       <section class="card setting-card">
         <div class="setting-text"><strong>מראה</strong></div>
         <div class="seg" id="themeSeg" role="radiogroup" aria-label="מראה">
@@ -568,13 +571,14 @@ footer .version { margin-top: 4px; }
         </div>
       </section>
 
+      <h2 class="sec-title grp">חשבון ושיתוף</h2>
       <section class="card share-card" id="shareCard">
         <div class="setting-text"><strong>שיתוף האתר</strong><span>שלחו לחבר קישור לכניסה לאתר.</span></div>
         <div class="share-link">
           <span class="share-url" id="shareUrl" dir="ltr"></span>
           <button class="share-copy" id="copySite" type="button" title="העתקת קישור" aria-label="העתקת קישור"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg><span id="copyTxt">העתקה</span></button>
+          <button class="share-copy share-go2" id="shareSite" type="button" title="שיתוף" aria-label="שיתוף"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg></button>
         </div>
-        <button class="btn primary share-go" id="shareSite" type="button"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>שיתוף</button>
         <p class="note" id="shareMsg" hidden></p>
       </section>
 
@@ -617,22 +621,14 @@ footer .version { margin-top: 4px; }
   <p class="note" id="pendMsg" hidden></p>
 </section>
       <div id="usersSection" hidden>
-        <h2 class="sec-title">משתמשים</h2>
+        <h2 class="sec-title grp">ניהול משתמשים</h2>
         <section class="card table-card">
           <p class="note" id="usersStatus" hidden></p>
           <input class="field users-search" id="usersSearch" type="search" placeholder="חיפוש משתמש" aria-label="חיפוש משתמש" autocomplete="off" hidden>
           <div id="usersList"></div>
           <button class="btn ghost small users-more" id="usersMore" type="button" hidden></button>
         </section>
-        <form class="card user-form" id="userForm" autocomplete="off">
-          <strong>הוספת משתמש</strong>
-          <input class="field" id="newUser" type="text" dir="ltr" placeholder="שם משתמש באנגלית (אותיות בלבד)" autocapitalize="none" spellcheck="false" maxlength="20" required>
-          <input class="field" id="newName" type="text" placeholder="שם פרטי בעברית" required>
-          <label class="check" for="newAdmin"><input type="checkbox" id="newAdmin"> מנהל (יכול להעלות ולמחוק קבצים)</label>
-          <button class="btn primary" type="submit">הוספה</button>
-          <p class="note" id="userMsg" hidden></p>
-        </form>
-        <details class="note help"><summary>איך מוסיפים משתמש?</summary>כאן מנהלים שמות והרשאות. את הסיסמה יוצרים ב-<bdi dir="ltr">Firebase</bdi>, תחת <bdi dir="ltr">Authentication › Add user</bdi>, עם האימייל שיוצג אחרי ההוספה.</details>
+        <p class="note" id="userMsg" hidden></p>
       </div>
 
       <section class="card install-card" id="refreshCard" hidden>
@@ -671,7 +667,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:57";
+var VERSION = "v15.11 · 11:02";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1881,21 +1877,6 @@ function userMsg(t, ltrBits) {
   });
   m.hidden = false;
 }
-$("userForm").addEventListener("submit", async function (ev) {
-  ev.preventDefault();
-  var un = $("newUser").value.trim().toLowerCase(), name = $("newName").value.trim();
-  if (!/^[a-z]{3,20}$/.test(un)) { userMsg("שם משתמש: 3 עד 20 אותיות באנגלית, בלי רווחים וספרות.", []); return; }
-  var id = loginId(un);
-  if (!id || !name) return;
-  try {
-    await db.collection("users").doc(id).set({ name: name });
-    if ($("newAdmin").checked) await db.collection("admins").doc(id).set({ role: "admin" });
-    userMsg("נוסף. כדי שיוכל להיכנס, יוצרים ב-%s משתמש עם האימייל %s וסיסמה.", ["Firebase › Authentication › Add user", id]);
-    $("userForm").reset();
-    if (pendingFor) { try { await db.collection("pending").doc(pendingFor).delete(); } catch (e) {} pendingFor = null; }
-    loadUsers();
-  } catch (e) { userMsg("ההוספה לא הצליחה."); }
-});
 window.addEventListener("hashchange", route);
 route();
 /* Login via Firebase Authentication. Accounts are created by the site owner in the
