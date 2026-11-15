@@ -448,6 +448,14 @@ footer .version { margin-top: 4px; }
 .pf-top { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
 .pf-who { min-width: 0; display: flex; flex-direction: column; }
 .pf-who strong { font-size: 16px; font-weight: 800; overflow-wrap: anywhere; }
+.pv-box:focus { outline: none; }
+.eu-pwtoggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--fg); font: inherit; font-weight: 700; cursor: pointer; text-align: start; }
+.eu-pwtoggle::after { content: ""; margin-inline-start: auto; width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; }
+.eu-pwtoggle[aria-expanded="true"]::after { transform: rotate(-135deg); }
+.eu-pwtoggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eu-pwbox { display: flex; flex-direction: column; gap: 10px; }
+.eu-pwbox[hidden] { display: none; }
+#euId { text-align: right; }
 .pend-ok { display: flex; margin-top: 8px; }
 .pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
@@ -632,19 +640,6 @@ footer .version { margin-top: 4px; }
           <div class="pf-who"><strong id="pfName"></strong><div class="u-meta" id="pfMeta"></div></div>
           <button class="btn ghost small" id="pfEdit" type="button">עריכה</button></div>
       </section>
-      <section class="card pw-card" id="pwCard">
-        <details id="pwDetails">
-          <summary><span class="setting-text"><strong>שינוי סיסמה</strong><span>החלפת הסיסמה שלכם לסיסמה חדשה.</span></span></summary>
-          <form class="pw-form" id="pwForm" autocomplete="off" novalidate>
-            <input class="field" id="pwOld" type="password" dir="ltr" placeholder="סיסמה נוכחית" autocomplete="current-password">
-            <input class="field" id="pwNew" type="password" dir="ltr" placeholder="סיסמה חדשה (לפחות 6 תווים)" autocomplete="new-password">
-            <input class="field" id="pwNew2" type="password" dir="ltr" placeholder="הקלידו שוב את הסיסמה החדשה" autocomplete="new-password">
-            <p class="note pw-msg" id="pwMsg" hidden></p>
-            <button class="btn primary" id="pwBtn" type="submit">שמירת סיסמה</button>
-          </form>
-        </details>
-      </section>
-
       <h2 class="sec-title grp">העדפות</h2>
       <section class="card setting-card">
         <div class="setting-text"><strong>מראה</strong></div>
@@ -733,7 +728,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v1.5";
+var VERSION = "v1.6";
 var IS_TEST = /\/test\/(index\.html)?$/.test(location.pathname);
 if (IS_TEST) { VERSION += " · בדיקות"; (function () { var b = document.createElement("div"); b.className = "test-ribbon"; b.textContent = "סביבת בדיקות"; document.body.appendChild(b); })(); }
 /* Pull down from the top of the screen to refresh, like a regular phone app. */
@@ -1874,27 +1869,6 @@ $("shareSite").addEventListener("click", async function () {
 });
 
 /* Change own password: re-enter the current one, then the new one twice. */
-function pwMsg(t, kind) { var m = $("pwMsg"); m.textContent = t; m.className = "note pw-msg " + (kind || ""); m.hidden = !t; }
-$("pwForm").addEventListener("submit", async function (ev) {
-  ev.preventDefault();
-  var old = $("pwOld").value, n1 = $("pwNew").value, n2 = $("pwNew2").value;
-  if (!old) { pwMsg("יש להקליד את הסיסמה הנוכחית.", "err"); return; }
-  if (n1.length < 6) { pwMsg("הסיסמה החדשה חייבת להכיל לפחות 6 תווים.", "err"); return; }
-  if (n1 !== n2) { pwMsg("שתי הסיסמאות החדשות אינן זהות.", "err"); return; }
-  if (n1 === old) { pwMsg("הסיסמה החדשה זהה לנוכחית.", "err"); return; }
-  var u = auth && auth.currentUser; if (!u) return;
-  var b = $("pwBtn"); b.disabled = true; pwMsg("");
-  try {
-    await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, old));
-    await u.updatePassword(n1);
-    $("pwForm").reset(); pwMsg("הסיסמה עודכנה.", "ok");
-    setTimeout(function () { var d = $("pwDetails"); if (d) d.open = false; pwMsg(""); }, 2200);
-  } catch (e) {
-    var c = e && e.code || "";
-    pwMsg(c === "auth/wrong-password" || c === "auth/invalid-credential" || c === "auth/invalid-login-credentials" ? "הסיסמה הנוכחית שגויה." : c === "auth/too-many-requests" ? "יותר מדי ניסיונות. נסו שוב בעוד כמה דקות." : c === "auth/weak-password" ? "הסיסמה חלשה מדי." : "עדכון הסיסמה לא הצליח.", "err");
-  }
-  b.disabled = false;
-});
 window.addEventListener("hashchange", route);
 route();
 
@@ -2131,6 +2105,16 @@ function editUser(u, opts) {
   body.appendChild(fieldBlock("שם מלא", fn, "euName"));
   body.appendChild(fieldBlock("תעודת זהות", idn, "euId"));
   var rw = document.createElement("div"); rw.className = "eu-f"; var rlab = document.createElement("span"); rlab.className = "eu-lab"; rlab.textContent = "תפקיד"; rw.appendChild(rlab); rw.appendChild(rl); body.appendChild(rw);
+  var pwOld, pwNew, pwNew2, pwOpen = false;
+  if (opts.self) {
+    var tg = document.createElement("button"); tg.type = "button"; tg.className = "eu-pwtoggle"; tg.setAttribute("aria-expanded", "false");
+    tg.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>שינוי סיסמה</span>';
+    var pwBox = document.createElement("div"); pwBox.className = "eu-pwbox"; pwBox.hidden = true;
+    function pwField(ph, ac) { var i = document.createElement("input"); i.className = "field"; i.type = "password"; i.dir = "ltr"; i.placeholder = ph; i.autocomplete = ac; pwBox.appendChild(i); return i; }
+    pwOld = pwField("סיסמה נוכחית", "current-password"); pwNew = pwField("סיסמה חדשה (לפחות 6 תווים)", "new-password"); pwNew2 = pwField("הקלידו שוב את הסיסמה החדשה", "new-password");
+    tg.addEventListener("click", function () { pwOpen = !pwOpen; pwBox.hidden = !pwOpen; tg.setAttribute("aria-expanded", String(pwOpen)); if (pwOpen) pwOld.focus(); });
+    body.appendChild(tg); body.appendChild(pwBox);
+  }
   var err = document.createElement("p"); err.className = "eu-msg eu-err"; err.setAttribute("role", "alert"); body.appendChild(err);
 
   var foot = document.createElement("div"); foot.className = "pv-foot eu-foot";
@@ -2144,12 +2128,24 @@ function editUser(u, opts) {
     $("euNameMsg").textContent = ""; $("euIdMsg").textContent = ""; err.textContent = "";
     if (!/^[\u0590-\u05FF][\u0590-\u05FF\s'"׳״-]*$/.test(name) || name.length < 2) { $("euNameMsg").textContent = "יש להזין שם בעברית."; bad = true; }
     if (id && !validIsraeliId(id)) { $("euIdMsg").textContent = "מספר תעודת הזהות אינו תקין."; bad = true; }
+    var wantsPw = opts.self && pwOpen && (pwOld.value || pwNew.value || pwNew2.value);
+    if (wantsPw) {
+      var po = pwOld.value, p1 = pwNew.value, p2 = pwNew2.value, pe = "";
+      if (!po) pe = "יש להקליד את הסיסמה הנוכחית."; else if (p1.length < 6) pe = "הסיסמה החדשה חייבת להכיל לפחות 6 תווים."; else if (p1 !== p2) pe = "שתי הסיסמאות החדשות אינן זהות."; else if (p1 === po) pe = "הסיסמה החדשה זהה לנוכחית.";
+      if (pe) { err.textContent = pe; return; }
+    }
     if (bad) return;
     save.disabled = true;
     try {
+      if (wantsPw) {
+        var cu = auth.currentUser;
+        try { await cu.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(cu.email, pwOld.value)); }
+        catch (pe2) { var pc = pe2 && pe2.code || ""; err.textContent = pc === "auth/too-many-requests" ? "יותר מדי ניסיונות. נסו שוב בעוד כמה דקות." : "הסיסמה הנוכחית שגויה."; save.disabled = false; return; }
+      }
       await db.collection("users").doc(u.id).set({ name: name.split(" ")[0], fullName: name, idNumber: id, role: role });
       var meId = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
       if (u.id === meId) { state.profile = { name: name.split(" ")[0], fullName: name, idNumber: id, role: role }; renderProfile(); setGreeting(); }
+      if (wantsPw) { try { await auth.currentUser.updatePassword(pwNew.value); } catch (pe3) { err.textContent = (pe3 && pe3.code === "auth/weak-password") ? "הפרטים נשמרו, אבל הסיסמה חלשה מדי." : "הפרטים נשמרו, אבל עדכון הסיסמה לא הצליח."; save.disabled = false; if (state.isAdmin) loadUsers(); return; } }
       closePreview(); if (state.isAdmin) loadUsers();
     } catch (er) { err.textContent = "השמירה לא הצליחה. נסו שוב."; save.disabled = false; }
   });
@@ -2157,7 +2153,10 @@ function editUser(u, opts) {
   ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
   document.body.appendChild(ov);
   document.documentElement.classList.add("pv-open");
-  void ov.offsetWidth; ov.classList.add("in"); fn.focus({ preventScroll: true });
+  void ov.offsetWidth; ov.classList.add("in");
+  /* On phones, focusing a field pops the keyboard up before the person has chosen anything, so focus the dialog itself there. */
+  var touch = false; try { touch = matchMedia("(pointer: coarse)").matches; } catch (e) {}
+  if (touch) { box.tabIndex = -1; box.focus({ preventScroll: true }); } else fn.focus({ preventScroll: true });
 }
 function askRemove(row, u) {
   row.textContent = "";
