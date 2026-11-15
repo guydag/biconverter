@@ -360,6 +360,8 @@ footer .version { margin-top: 4px; }
 .ibtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (hover: hover) { .ibtn:hover { border-color: var(--accent); color: var(--accent); } .ibtn.ok:hover { color: var(--accent-fg); filter: brightness(1.08); } .ibtn.del:hover { border-color: var(--err); color: var(--err); } }
 .user-actions { display: flex; gap: 8px; flex-wrap: nowrap; }
+.share-card { gap: 14px; }
+.share-acts { display: flex; gap: 8px; flex: none; }
 .reg-link { text-align: center; margin-top: 14px; }
 .reg-link a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .pend-id { font-variant-numeric: tabular-nums; direction: ltr; }
@@ -548,6 +550,24 @@ footer .version { margin-top: 4px; }
         </div>
       </section>
 
+      <section class="card share-card" id="shareCard">
+        <div class="setting-row">
+          <div class="setting-text"><strong>שיתוף האתר</strong><span>שלחו לחבר קישור לכניסה לאתר.</span></div>
+          <div class="share-acts">
+            <button class="ibtn" id="shareSite" type="button" title="שיתוף" aria-label="שיתוף"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg></button>
+            <button class="ibtn" id="copySite" type="button" title="העתקת קישור" aria-label="העתקת קישור"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg></button>
+          </div>
+        </div>
+        <div class="setting-row" id="regRow" hidden>
+          <div class="setting-text"><strong>קישור להרשמה</strong><span>לנרשמים חדשים. הבקשות מגיעות לאישור שלך.</span></div>
+          <div class="share-acts">
+            <button class="ibtn" id="shareReg" type="button" title="שיתוף" aria-label="שיתוף קישור הרשמה"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg></button>
+            <button class="ibtn" id="copyReg" type="button" title="העתקת קישור" aria-label="העתקת קישור הרשמה"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg></button>
+          </div>
+        </div>
+        <p class="note" id="shareMsg" hidden></p>
+      </section>
+
       <section class="card install-card" id="installCard" hidden>
         <div class="setting-row">
           <div class="setting-text"><strong>התקנה כאפליקציה</strong><span>פתיחה במגע אחד ממסך הבית, בלי דפדפן.</span></div>
@@ -629,7 +649,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:20";
+var VERSION = "v15.11 · 10:23";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1631,6 +1651,23 @@ function route() {
   if (onSettings && auth && auth.currentUser) pushInit();
   window.scrollTo(0, 0);
 }
+
+/* Sharing the site and the registration page. */
+function siteUrl(page) { var b = location.href.split("#")[0].split("?")[0].replace(/[^\/]*$/, ""); return b + (page || ""); }
+function shareMsg(t) { var m = $("shareMsg"); m.textContent = t; m.hidden = false; clearTimeout(shareMsg.t); shareMsg.t = setTimeout(function () { m.hidden = true; }, 2200); }
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+  try { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); ta.remove(); return ok; } catch (e) { return false; }
+}
+function wireShare(shareId, copyId, url, title) {
+  $(copyId).addEventListener("click", async function () { shareMsg((await copyText(url())) ? "הקישור הועתק." : "ההעתקה לא הצליחה."); });
+  $(shareId).addEventListener("click", async function () {
+    if (navigator.share) { try { await navigator.share({ title: title, url: url() }); } catch (e) {} }
+    else shareMsg((await copyText(url())) ? "הקישור הועתק." : "ההעתקה לא הצליחה.");
+  });
+}
+wireShare("shareSite", "copySite", function () { return siteUrl(""); }, "רשומי משואות");
+wireShare("shareReg", "copyReg", function () { return siteUrl("register.html"); }, "הרשמה לאתר רשומי משואות");
 window.addEventListener("hashchange", route);
 route();
 
@@ -1868,7 +1905,7 @@ Array.prototype.forEach.call(document.querySelectorAll("[data-logout]"), functio
 });
 auth.onAuthStateChanged(async function (user) {
   showApp(!!user);
-  state.isAdmin = false; setDot(0);
+  state.isAdmin = false; setDot(0); $("regRow").hidden = true;
   $("usersSection").hidden = true;
   $("refreshCard").hidden = true;
   $("adminBar").hidden = true;
@@ -1881,7 +1918,7 @@ auth.onAuthStateChanged(async function (user) {
   state.isAdmin = await checkAdmin(user);
   $("adminBar").hidden = !state.isAdmin;
   if (state.saved) renderSaved();
-  $("usersSection").hidden = !state.isAdmin;
+  $("usersSection").hidden = !state.isAdmin; $("regRow").hidden = !state.isAdmin;
   $("refreshCard").hidden = !state.isAdmin;
   if (state.isAdmin && location.hash === "#settings") loadUsers(); else if (state.isAdmin) loadPending();
 });
