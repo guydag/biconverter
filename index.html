@@ -615,6 +615,7 @@ footer .version { margin-top: 4px; }
       <section class="card" id="pendingSection" hidden>
   <div class="pend-head"><strong>ממתינים לאישור</strong><span class="pend-count" id="pendCount"></span></div>
   <div id="pendingList"></div>
+  <p class="note" id="pendMsg" hidden></p>
 </section>
       <div id="usersSection" hidden>
         <h2 class="sec-title">משתמשים</h2>
@@ -673,7 +674,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:31";
+var VERSION = "v15.11 · 10:35";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1755,13 +1756,19 @@ async function loadUsers() {
   } catch (e) { st.textContent = "לא הצלחנו לטעון את המשתמשים."; st.hidden = false; }
 }
 var pendingFor = null;
+function pendMsg(t, bits) {
+  var m = $("pendMsg"); m.textContent = "";
+  var parts = t.split("%s"), i = 0;
+  parts.forEach(function (p, k) { m.appendChild(document.createTextNode(p)); if (k < parts.length - 1) { var b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = bits[i++] || ""; m.appendChild(b); } });
+  m.hidden = false;
+}
 function setDot(n) { var a = document.querySelector('a.iconbtn[href="#settings"]'); if (a) a.classList.toggle("dot", n > 0); }
 async function loadPending() {
   var sec = $("pendingSection"), box = $("pendingList");
   try {
     var snap = await db.collection("pending").get();
     var items = []; snap.forEach(function (d) { items.push({ id: d.id, d: d.data() || {} }); });
-    box.textContent = ""; sec.hidden = !items.length; $("pendCount").textContent = items.length;
+    box.textContent = ""; sec.hidden = !items.length && $("pendMsg").hidden; $("pendCount").textContent = items.length;
     setDot(items.length);
     items.forEach(function (it) {
       var d = it.d, row = document.createElement("div"); row.className = "pend-row";
@@ -1774,12 +1781,19 @@ async function loadPending() {
       if (d.idNumber) { var ib = document.createElement("bdi"); ib.className = "pend-id"; ib.textContent = "ת״ז " + d.idNumber; sm.appendChild(ib); }
       who.appendChild(st); who.appendChild(sm); row.appendChild(who);
       var acts = document.createElement("div"); acts.className = "acts";
-      acts.appendChild(mkIcon("check", "אישור", "ok", function () {
-        $("newFirst").value = d.first || ""; $("newLast").value = d.last || "";
-        $("newName").value = (d.fullName || "").trim().split(/\s+/)[0] || "";
-        syncNewUser(); pendingFor = it.id;
-        $("userForm").scrollIntoView({ behavior: "smooth", block: "center" });
-        $("userForm").querySelector("button[type=submit]").focus();
+      acts.appendChild(mkIcon("check", "אישור", "ok", async function () {
+        var f = (d.first || "").toLowerCase().replace(/[^a-z0-9]/g, ""), l = (d.last || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 2);
+        var uid = f + l, name = (d.fullName || "").trim().split(/\s+/)[0] || "";
+        if (!uid || !name) { pendMsg("חסרים פרטים בבקשה הזו.", []); return; }
+        var email = uid + "@masuot.app";
+        try {
+          var ex = await db.collection("users").doc(email).get();
+          if (ex.exists) { pendMsg("כבר קיים משתמש בשם %s. אפשר לדחות את הבקשה או לשנות את שם המשתמש הקיים.", [uid]); return; }
+          await db.collection("users").doc(email).set({ name: name });
+          await db.collection("pending").doc(it.id).delete();
+          pendMsg("%s אושר. כדי שיוכל להיכנס, יוצרים ב-Firebase › Authentication › Add user משתמש עם האימייל %s וסיסמה.", [name, email]);
+          loadUsers();
+        } catch (e) { pendMsg("האישור לא הצליח.", []); }
       }));
       acts.appendChild(mkIcon("x", "דחייה", "del", async function () {
         try { await db.collection("pending").doc(it.id).delete(); } catch (e) {}
