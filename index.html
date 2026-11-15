@@ -728,7 +728,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v1.7";
+var VERSION = "v1.8";
 var IS_TEST = /\/test\/(index\.html)?$/.test(location.pathname);
 if (IS_TEST) { VERSION += " · בדיקות"; (function () { var b = document.createElement("div"); b.className = "test-ribbon"; b.textContent = "סביבת בדיקות"; document.body.appendChild(b); })(); }
 /* Pull down from the top of the screen to refresh, like a regular phone app. */
@@ -895,12 +895,14 @@ function process(matrix) {
   var missing = ["שם פרטי", "שם משפחה", "שכבה"].filter(function (n) { return cols[n] === -1; });
   if (missing.length) throw new Error("חסרות עמודות בקובץ: " + missing.join(", "));
 
+  var idCol = -1;
+  head.forEach(function (h, i) { var c = h.replace(/["'\u05F3\u05F4.\-]/g, "").replace(/\s+/g, " ").trim(); if (idCol === -1 && (c.indexOf("זהות") !== -1 || c === "תז" || /^id$/i.test(c))) idCol = i; });
   var rows = [], factory = [];
   for (var i = hi + 1; i < matrix.length; i++) {
     var m = matrix[i];
     var fn = norm(m[cols["שם פרטי"]]), ln = norm(m[cols["שם משפחה"]]), gr = norm(m[cols["שכבה"]]);
     if (!fn && !ln && !gr) continue;
-    rows.push({ fn: fn, ln: ln, gr: gr, idx: i });
+    rows.push({ fn: fn, ln: ln, gr: gr, idx: i, id: idCol !== -1 ? idHash(m[idCol]) : "" });
     if (cols["מפעל"] !== -1) factory.push(m[cols["מפעל"]]);
   }
   if (!rows.length) throw new Error("לא נמצאו רשומים בקובץ.");
@@ -1057,6 +1059,16 @@ function base64ToBlob(b64) {
 
 /* One document per factory, replaced on every new file, so it always holds the latest version. */
 function personKey(fn, ln, gr) { return [norm(fn), norm(ln), norm(gr)].join("|"); }
+/* People are matched between reports by ID number. Only a short salted hash of it is ever stored, never the number itself. */
+function idHash(raw) {
+  var s = String(raw == null ? "" : raw).replace(/\D/g, "");
+  if (s.length < 5 || s.length > 9) return "";
+  s = ("000000000" + s).slice(-9);
+  var str = "masuot-v1:" + s, h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (var i = 0; i < str.length; i++) { var ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  return ("0000000" + (h1 >>> 0).toString(16)).slice(-8);
+}
 async function saveLatest(blob, name) {
   var key = (state.keywords || "ללא מפעל").replace(/\//g, "-");
   logUsage("upload", key);
@@ -1073,17 +1085,19 @@ async function saveLatest(blob, name) {
     try {
       var pw = XLSX.read(c.data, { type: "base64" });
       var pm = XLSX.utils.sheet_to_json(pw.Sheets[pw.SheetNames[0]], { header: 1, defval: "" });
-      var seenKeys = {};
-      pm.slice(1).forEach(function (r) { seenKeys[personKey(r[0], r[1], r[2])] = true; });
-      var nowKeys = {};
-      state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); nowKeys[k] = true; if (!seenKeys[k]) fresh.push(k); });
-      /* People who were in the previous report and are no longer in this one. */
-      pm.slice(1).forEach(function (r) { if ((r[0] || r[1] || r[2]) && !nowKeys[personKey(r[0], r[1], r[2])]) removed.push(personKey(r[0], r[1], r[2])); });
+      /* A person is the same person when the ID matches; names are compared only where an ID is missing on either side. */
+      var prev = pm.slice(1).map(function (r, i) { return { k: personKey(r[0], r[1], r[2]), id: (Array.isArray(c.rowIds) && c.rowIds[i]) || "", any: !!(r[0] || r[1] || r[2]) }; }).filter(function (p) { return p.any; });
+      var pId = {}, pNoId = {}, pAll = {}, nId = {}, nNoId = {}, nAll = {};
+      prev.forEach(function (p) { pAll[p.k] = true; if (p.id) pId[p.id] = true; else pNoId[p.k] = true; });
+      state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); nAll[k] = true; if (r.id) nId[r.id] = true; else nNoId[k] = true; });
+      state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); if (!(r.id ? (pId[r.id] || pNoId[k]) : pAll[k])) fresh.push(k); });
+      prev.forEach(function (p) { if (!(p.id ? (nId[p.id] || nNoId[p.k]) : nAll[p.k])) removed.push(p.k); });
     } catch (e) { fresh = []; removed = []; }
   }
   await ref.set({
     fresh: fresh,
     removed: removed,
+    rowIds: state.rows.some(function (r) { return r.id; }) ? state.rows.map(function (r) { return r.id || ""; }) : [],
     cmp: cur.exists,
     name: key,
     fileTime: state.fileTime || Date.now(),
@@ -1211,13 +1225,19 @@ async function getFile(d, over) {
 var DEL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
 function tsMs(t) { return t && t.toMillis ? t.toMillis() : 0; }
 /* Non-alumni who are not in a report's list get a gentle heads-up (they usually should be registered for their own trip). */
-function selfMissingFrom(rows) {
-  var p = state.profile; if (!p || !p.fullName || !p.role || p.role === "בוגר") return false;
-  var n = function (t) { return String(t || "").replace(/["'׳״\u05F3\u05F4]/g, "").replace(/[^\u0590-\u05FFa-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); };
+function selfMissingFrom(rows, d) {
+  var p = state.profile; if (!p || !p.role || p.role === "בוגר" || (!p.fullName && !p.idNumber) || rows.length < 2) return false;
+  var n = function (t) { return String(t || "").replace(/["'׳״\u05F3\u05F4]/g, "").replace(/[^\u05D0-\u05EAa-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); };
   var me = n(p.fullName), parts = me.split(" "), rev = parts.slice(1).concat(parts[0]).join(" ");
-  if (rows.length < 2) return false;
   var fi = rows[0].indexOf("שם פרטי"), li = rows[0].indexOf("שם משפחה"); if (fi < 0) fi = 0; if (li < 0) li = 1;
-  return !rows.slice(1).some(function (r) { var a = n(r[fi] + " " + r[li]), b = n(r[li] + " " + r[fi]); return a === me || b === me || a === rev || b === rev; });
+  var byName = function (r) { var a = n(r[fi] + " " + r[li]), b = n(r[li] + " " + r[fi]); return !!me && (a === me || b === me || a === rev || b === rev); };
+  /* The ID decides whenever both sides have one; rows without an ID fall back to the name. */
+  var ids = d && Array.isArray(d.rowIds) && d.rowIds.length === rows.length - 1 ? d.rowIds : null, mine = idHash(p.idNumber);
+  if (ids && mine) {
+    if (ids.indexOf(mine) !== -1) return false;
+    return !rows.slice(1).some(function (r, i) { return !ids[i] && byName(r); });
+  }
+  return !rows.slice(1).some(byName);
 }
 /* Something counts as "new" only for a day after it was uploaded (an upload still waiting for its server time counts as just now). */
 var NEW_WINDOW = 24 * 3600 * 1000;
@@ -1495,7 +1515,7 @@ function openPreview(d) {
   wrap.appendChild(none);
   var total = rows.length ? rows.length - 1 : 0;
   var count = document.createElement("div"); count.className = "pv-count"; count.setAttribute("aria-live", "polite"); sw.appendChild(count);
-  if (selfMissingFrom(rows)) { var selfNote = document.createElement("div"); selfNote.className = "pv-self"; selfNote.setAttribute("role", "note"); selfNote.textContent = "יכול להיות שאתה לא רשום בעצמך?\uD83D\uDE35"; sw.appendChild(selfNote); }
+  if (selfMissingFrom(rows, d)) { var selfNote = document.createElement("div"); selfNote.className = "pv-self"; selfNote.setAttribute("role", "note"); selfNote.textContent = "יכול להיות שאתה לא רשום בעצמך?\uD83D\uDE35"; sw.appendChild(selfNote); }
   function applyFilter() {
     var q = si.value, shown = 0;
     Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
