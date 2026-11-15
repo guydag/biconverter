@@ -639,12 +639,6 @@ footer .version { margin-top: 4px; }
         <p class="note" id="userMsg" hidden></p>
       </div>
 
-      <section class="card install-card" id="refreshCard" hidden>
-        <div class="setting-row">
-          <div class="setting-text"><strong>רענון האתר</strong><span>טוען מחדש את הגרסה העדכנית ביותר.</span></div>
-          <button class="btn primary small" id="refreshBtn" type="button">רענון</button>
-        </div>
-      </section>
 
       <p class="note">נתקלתם בבעיה? אפשר לפנות לגיא, שמתחזק את האתר.</p>
       <p class="version" dir="ltr" data-version></p>
@@ -675,7 +669,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 11:10";
+var VERSION = "v15.11 · 11:11";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1660,11 +1654,6 @@ function maybeWelcome() {
     void ov.offsetWidth; ov.classList.add("in"); ok.focus({ preventScroll: true });
   }, 600);
 }
-$("refreshBtn").addEventListener("click", function () {
-  this.disabled = true; this.textContent = "מרענן…";
-  /* A fresh address makes the browser skip its stored copy of the page. */
-  location.replace(location.pathname + "?r=" + Date.now() + location.hash);
-});
 $("installBtn").addEventListener("click", installAction);
 $("installBannerBtn").addEventListener("click", installAction);
 $("installBannerX").addEventListener("click", function () { try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {} $("installBanner").hidden = true; });
@@ -1961,7 +1950,6 @@ auth.onAuthStateChanged(async function (user) {
   showApp(!!user);
   state.isAdmin = false; setDot(0);
   $("usersSection").hidden = true;
-  $("refreshCard").hidden = true;
   $("adminBar").hidden = true;
   $("uploadCard").hidden = true;
   if (!user) { state.seenFor = null; installInit(); return; }
@@ -1973,7 +1961,6 @@ auth.onAuthStateChanged(async function (user) {
   $("adminBar").hidden = !state.isAdmin;
   if (state.saved) renderSaved();
   $("usersSection").hidden = !state.isAdmin;
-  $("refreshCard").hidden = !state.isAdmin;
   if (state.isAdmin && location.hash === "#settings") loadUsers(); else if (state.isAdmin) loadPending();
 });
 }
