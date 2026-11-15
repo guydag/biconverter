@@ -611,7 +611,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:00";
+var VERSION = "v15.11 · 02:06";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -867,7 +867,7 @@ async function saveLatest(blob, name) {
   var ref = db.collection("factories").doc(key);
   /* Only the newest file per factory is kept: an older file never replaces a newer one. */
   var cur = await ref.get();
-  var fresh = [];
+  var fresh = [], removed = [];
   if (cur.exists) {
     var c = cur.data(), curTime = c.fileTime || 0;
     if ((state.fileTime || 0) < curTime) return false;
@@ -877,11 +877,15 @@ async function saveLatest(blob, name) {
       var pm = XLSX.utils.sheet_to_json(pw.Sheets[pw.SheetNames[0]], { header: 1, defval: "" });
       var seenKeys = {};
       pm.slice(1).forEach(function (r) { seenKeys[personKey(r[0], r[1], r[2])] = true; });
-      state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); if (!seenKeys[k]) fresh.push(k); });
-    } catch (e) { fresh = []; }
+      var nowKeys = {};
+      state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); nowKeys[k] = true; if (!seenKeys[k]) fresh.push(k); });
+      /* People who were in the previous report and are no longer in this one. */
+      pm.slice(1).forEach(function (r) { if ((r[0] || r[1] || r[2]) && !nowKeys[personKey(r[0], r[1], r[2])]) removed.push([norm(r[0]), norm(r[1]), norm(r[2])]); });
+    } catch (e) { fresh = []; removed = []; }
   }
   await ref.set({
     fresh: fresh,
+    removed: removed,
     name: key,
     fileTime: state.fileTime || Date.now(),
     fileName: name,
@@ -1136,7 +1140,8 @@ function openPreview(d) {
   var sw = document.createElement("div"); sw.className = "pv-search";
   var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
   sw.appendChild(si); addClearButton(si);
-  var freshSet = {}, nFresh = 0, newOnly = false;
+  var freshSet = {}, nFresh = 0, newOnly = false, goneOnly = false;
+  var goneList = Array.isArray(d.removed) ? d.removed : [], nGone = goneList.length;
   var freshKey = "freshSeen:" + (state.me || "") + ":" + d.name, freshStamp = String(tsMs(d.updatedAt)), marks = false;
   try { marks = localStorage.getItem(freshKey) !== freshStamp; } catch (e) { marks = true; }
   (Array.isArray(d.fresh) ? d.fresh : []).forEach(function (k) { freshSet[k] = true; });
@@ -1147,20 +1152,21 @@ function openPreview(d) {
   var counts = {}, order = [];
   if (gi !== -1) rows.slice(1).forEach(function (r) { var g = norm(r[gi]); if (!g) return; if (!(g in counts)) { counts[g] = 0; order.push(g); } counts[g]++; });
   order.sort(function (a, b) { return gradeIndex(a) - gradeIndex(b) || a.localeCompare(b, "he"); });
-  if (order.length > 1 || nFresh) {
+  if (order.length > 1 || nFresh || nGone) {
     chips = document.createElement("div"); chips.className = "pv-chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "סינון לפי שכבה");
-    [""].concat(order.length > 1 ? order : []).concat(nFresh ? ["\u0000new"] : []).forEach(function (g) {
+    [""].concat(order.length > 1 ? order : []).concat(nFresh ? ["\u0000new"] : []).concat(nGone ? ["\u0000gone"] : []).forEach(function (g) {
       var c = document.createElement("button"); c.type = "button"; c.className = "chip" + (g === "" ? " on" : "");
-      var isNew = g === "\u0000new";
-      c.textContent = g === "" ? "הכל" : isNew ? "חדשים" : g; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
-      if (isNew) c.classList.add("chip-new");
-      if (g !== "") { var n = document.createElement("small"); n.textContent = isNew ? nFresh : counts[g]; c.appendChild(n); }
+      var isNew = g === "\u0000new", isGone = g === "\u0000gone";
+      c.textContent = g === "" ? "הכל" : isNew ? "חדשים" : isGone ? "ביטלו" : g; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
+      if (isNew || isGone) c.classList.add("chip-new");
+      if (g !== "") { var n = document.createElement("small"); n.textContent = isNew ? nFresh : isGone ? nGone : counts[g]; c.appendChild(n); }
       c.addEventListener("click", function () {
         /* "הכל" clears the selection; a grade toggles on and off, and several can be on together. */
-        if (g === "") { grades = []; newOnly = false; }
-        else if (isNew) newOnly = !newOnly;
+        if (g === "") { grades = []; newOnly = false; goneOnly = false; }
+        else if (isNew) { newOnly = !newOnly; if (newOnly) goneOnly = false; }
+        else if (isGone) { goneOnly = !goneOnly; if (goneOnly) newOnly = false; }
         else { var i = grades.indexOf(g); if (i === -1) grades.push(g); else grades.splice(i, 1); }
-        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k.dataset.g === "" ? !grades.length && !newOnly : k.dataset.g === "\u0000new" ? newOnly : grades.indexOf(k.dataset.g) !== -1); k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false"); });
+        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k.dataset.g === "" ? !grades.length && !newOnly && !goneOnly : k.dataset.g === "\u0000new" ? newOnly : k.dataset.g === "\u0000gone" ? goneOnly : grades.indexOf(k.dataset.g) !== -1); k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false"); });
         applyFilter(); prepareGrade();
         c.scrollIntoView({ block: "nearest", inline: "nearest" });
       });
@@ -1191,6 +1197,13 @@ function openPreview(d) {
     }
     tbd.appendChild(tr);
   });
+  /* People who were in the previous report but not in this one: hidden rows, shown only under "ביטלו". */
+  var fiG = rows.length && rows[0].indexOf("שם פרטי") !== -1 ? rows[0].indexOf("שם פרטי") : 0, liG = rows.length && rows[0].indexOf("שם משפחה") !== -1 ? rows[0].indexOf("שם משפחה") : 1;
+  goneList.forEach(function (g) {
+    var tr = document.createElement("tr"); tr.className = "gone"; tr.hidden = true;
+    for (var ci = 0; ci < cols; ci++) { var td = document.createElement("td"); td.textContent = ci === fiG ? g[0] : ci === liG ? g[1] : ci === gi ? g[2] : ""; tr.appendChild(td); }
+    tbd.appendChild(tr);
+  });
   wrap.appendChild(t);
   wrap.classList.toggle("marks", marks && nFresh > 0);
   pvFreshKey = nFresh ? [freshKey, freshStamp] : null;
@@ -1202,11 +1215,11 @@ function openPreview(d) {
     var q = si.value, shown = 0;
     Array.prototype.forEach.call(t.tBodies[0] ? t.tBodies[0].rows : [], function (tr) {
       var cells = Array.prototype.map.call(tr.cells, function (c) { return c.textContent; });
-      var hit = (!grades.length || grades.indexOf(norm(cells[gi])) !== -1) && (!newOnly || tr.classList.contains("fresh")) && matchesSearch(cells.join(" "), q);
+      var hit = (!grades.length || grades.indexOf(norm(cells[gi])) !== -1) && (goneOnly ? tr.classList.contains("gone") : !tr.classList.contains("gone")) && (!newOnly || tr.classList.contains("fresh")) && matchesSearch(cells.join(" "), q);
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
-    count.textContent = (si.value.trim() || grades.length || newOnly) ? shown + " מתוך " + total + " רשומים" : (marks && nFresh ? freshLine() : "");
+    count.textContent = (si.value.trim() || grades.length || newOnly || goneOnly) ? shown + " מתוך " + (goneOnly ? nGone : total) + " רשומים" : (marks && nFresh ? freshLine() : "");
     wrap.classList.toggle("marks", (marks || newOnly) && nFresh > 0);
     wrap.scrollTop = 0;
     softSwap(wrap);
@@ -1220,7 +1233,7 @@ function openPreview(d) {
   function dlLabel() { return canShareHere() ? "שיתוף" : "הורדה"; }
   var hint = document.createElement("span"); hint.className = "pv-hint";
   dl.addEventListener("click", async function () {
-    if ((!grades.length || grades.length >= order.length) && !newOnly) { getFile(d); return; }
+    if ((!grades.length || grades.length >= order.length) && !newOnly && !goneOnly) { getFile(d); return; }
     var over = null;
     try { over = await ready; } catch (e) {}
     getFile(d, over || undefined);
@@ -1240,20 +1253,22 @@ function openPreview(d) {
     ready = null; dl.textContent = dlLabel();
     /* Every grade selected is the same as no filter: the regular, full file. */
     var gradeOn = grades.length && grades.length < order.length;
-    if (!gradeOn && !newOnly) { hint.textContent = "סה\u05F4כ: " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
+    if (!gradeOn && !newOnly && !goneOnly) { hint.textContent = "סה\u05F4כ: " + Math.max(rows.length - 1, 0) + " רשומים"; return; }
     var gs = gradeOn ? order.filter(function (g) { return grades.indexOf(g) !== -1; }) : [];
     var fi = hdr.indexOf("שם פרטי"), li = hdr.indexOf("שם משפחה");
     fi = fi === -1 ? 0 : fi; li = li === -1 ? 1 : li;
-    var sub = rows.slice(1).filter(function (r) { return (!gradeOn || gs.indexOf(norm(r[gi])) !== -1) && (!newOnly || freshSet[personKey(r[0], r[1], r[2])]); }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
-    hint.textContent = "בקובץ: " + sub.length + (newOnly ? " רשומים חדשים" : " רשומים") + (gradeOn ? (gs.length === 1 ? " משכבת " : " משכבות ") + gradeText(gs) : "");
+    var srcRows = goneOnly ? goneList.map(function (g) { var a = []; a[fi] = g[0]; a[li] = g[1]; a[gi] = g[2]; return a; }) : rows.slice(1);
+    var sub = srcRows.filter(function (r) { return (!gradeOn || gs.indexOf(norm(r[gi])) !== -1) && (!newOnly || freshSet[personKey(r[0], r[1], r[2])]); }).map(function (r) { return { fn: r[fi], ln: r[li], gr: r[gi] }; });
+    hint.textContent = "בקובץ: " + sub.length + (newOnly ? " רשומים חדשים" : goneOnly ? " רשומים שביטלו" : " רשומים") + (gradeOn ? (gs.length === 1 ? " משכבת " : " משכבות ") + gradeText(gs) : "");
     /* י, יא, יב together are the senior grades, written שכב"ג; the quote mark is not allowed in file names. */
     var keys = gs.map(function (g) { return stripQ(norm(g)).replace(/^כיתה\s*/, ""); });
     var senior = keys.length === 3 && ["י", "יא", "יב"].every(function (k) { return keys.indexOf(k) !== -1; }) && order.length > 3;
     var label = !gradeOn ? "" : senior ? "שכבג" : gradeText(gs, true).replace(/[\\\/:*?"<>|]/g, ""); if (gradeOn && !senior && label.length > 30) label = gs.length + " שכבות";
     if (newOnly) label = label ? "חדשים, " + label : "חדשים";
+    if (goneOnly) label = label ? "ביטלו, " + label : "ביטלו";
     var nm = String(d.fileName || "רשומים.xlsx"), tag = " (" + label + ")";
     nm = / \d{2}\.\d{2} \d{2}-\d{2}\.xlsx$/.test(nm) ? nm.replace(/( \d{2}\.\d{2} \d{2}-\d{2}\.xlsx)$/, tag + "$1") : nm.replace(/\.xlsx$/, "") + tag + ".xlsx";
-    ready = buildBlob(sub, newOnly).then(function (b) { return { blob: b, name: nm }; });
+    ready = buildBlob(sub, newOnly || goneOnly).then(function (b) { return { blob: b, name: nm }; });
   }
   foot.appendChild(dl); foot.appendChild(hint); prepareGrade();
   box.appendChild(head); box.appendChild(sw); box.appendChild(headRow); box.appendChild(wrap); box.appendChild(foot);
