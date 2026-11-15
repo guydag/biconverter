@@ -385,6 +385,7 @@ footer .version { margin-top: 4px; }
 .reg-link a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .pend-id { font-variant-numeric: tabular-nums; direction: ltr; }
 #pendingSection { padding-bottom: 6px; }
+.pend-ok { display: flex; margin-top: 8px; }
 .pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .pend-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
@@ -668,7 +669,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 11:05";
+var VERSION = "v15.11 · 11:06";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1753,7 +1754,9 @@ function pendMsg(t, bits) {
   var m = $("pendMsg"); m.textContent = "";
   var parts = t.split("%s"), i = 0;
   parts.forEach(function (p, k) { m.appendChild(document.createTextNode(p)); if (k < parts.length - 1) { var b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = bits[i++] || ""; m.appendChild(b); } });
-  m.hidden = false;
+  var ok = document.createElement("button"); ok.type = "button"; ok.className = "btn ghost small pend-ok"; ok.textContent = "הבנתי, נוצר ב-Firebase";
+  ok.addEventListener("click", function () { m.hidden = true; if (!$("pendingList").children.length) $("pendingSection").hidden = true; });
+  m.appendChild(ok); m.hidden = false;
 }
 function setDot(n) { var a = document.querySelector('a.iconbtn[href="#settings"]'); if (a) a.classList.toggle("dot", n > 0); }
 async function loadPending() {
