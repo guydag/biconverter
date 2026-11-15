@@ -883,7 +883,7 @@ async function saveLatest(blob, name) {
       var nowKeys = {};
       state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); nowKeys[k] = true; if (!seenKeys[k]) fresh.push(k); });
       /* People who were in the previous report and are no longer in this one. */
-      pm.slice(1).forEach(function (r) { if ((r[0] || r[1] || r[2]) && !nowKeys[personKey(r[0], r[1], r[2])]) removed.push([norm(r[0]), norm(r[1]), norm(r[2])]); });
+      pm.slice(1).forEach(function (r) { if ((r[0] || r[1] || r[2]) && !nowKeys[personKey(r[0], r[1], r[2])]) removed.push(personKey(r[0], r[1], r[2])); });
     } catch (e) { fresh = []; removed = []; }
   }
   await ref.set({
@@ -1144,7 +1144,7 @@ function openPreview(d) {
   var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
   sw.appendChild(si); addClearButton(si);
   var freshSet = {}, nFresh = 0, newOnly = false, goneOnly = false;
-  var goneList = Array.isArray(d.removed) ? d.removed : [], nGone = goneList.length;
+  var goneList = (Array.isArray(d.removed) ? d.removed : []).map(function (k) { return String(k).split("|"); }), nGone = goneList.length;
   var freshKey = "freshSeen:" + (state.me || "") + ":" + d.name, freshStamp = String(tsMs(d.updatedAt)), marks = false;
   try { marks = localStorage.getItem(freshKey) !== freshStamp; } catch (e) { marks = true; }
   (Array.isArray(d.fresh) ? d.fresh : []).forEach(function (k) { freshSet[k] = true; });
