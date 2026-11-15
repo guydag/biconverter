@@ -16,7 +16,9 @@
 .pv-table.marks tr.fresh td { background: var(--accent-soft); }
 .pv-changes { display: flex; gap: 8px; padding: 2px 0 4px; }
 .pv-table td.tagcell { position: relative; }
-.pv-table.marks td.newcell::after, .pv-table td.gonecell::after { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.pv-table.marks td.newcell { padding-inline-end: 40px; }
+.pv-table td.gonecell { padding-inline-end: 72px; }
+.pv-table.marks td.newcell::after, .pv-table td.gonecell::after { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .pv-table.marks td.newcell::after { content: "חדש"; background: var(--accent); color: var(--accent-fg); }
 .pv-table td.gonecell::after { content: "ביטל הרשמה"; background: var(--err); color: #fff; }
 .pv-table tr.gone td { background: var(--err-soft); }
@@ -606,7 +608,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:41";
+var VERSION = "v15.11 · 02:42";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1189,10 +1191,10 @@ function openPreview(d) {
   /* The header is its own non-scrolling table above the list, so it never overlaps the rows (sticky headers misbehave on iOS). */
   var cols = rows.length ? rows[0].length : 0;
   var widths = cols === 3 ? [38, 38, 24] : Array.apply(null, Array(cols)).map(function () { return 100 / cols; });
-  function tagCell() { return gi !== -1 && gi < cols ? gi : Math.max(cols - 1, 0); }
+  function tagCell() { var li = rows.length ? rows[0].indexOf("שם משפחה") : -1; return Math.min(li === -1 ? 1 : li, Math.max(cols - 1, 0)); }
   var colEls = [];
   function setCols(tagged) {
-    var w = tagged && cols === 3 ? [26, 34, 40] : widths;
+    var w = tagged && cols === 3 ? [24, 50, 26] : widths;
     colEls.forEach(function (c, i) { c.style.width = w[i % cols] + "%"; });
   }
   function mkTable() {
