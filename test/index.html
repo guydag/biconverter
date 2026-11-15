@@ -532,7 +532,7 @@ button, summary, select, [role="button"], label[for], .saved.openable { cursor: 
 button svg, button svg *, summary svg, summary svg * { pointer-events: none; }
 button:disabled, .btn[disabled] { cursor: default; }
 @media (hover: hover) {
-  .seg button:not(.on):hover { background: var(--accent-soft); color: var(--accent); }
+  .seg button:not([aria-checked="true"]):hover { background: var(--accent-soft); color: var(--accent); }
   .pg-btn:not(:disabled):hover, .u-more:hover, .eu-pwtoggle:hover { border-color: var(--accent); color: var(--accent); }
   .u-item:hover { background: var(--accent-soft); }
   .share-copy:hover { background: var(--accent); color: var(--accent-fg); }
