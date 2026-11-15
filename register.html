@@ -41,7 +41,7 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
 .f[dir=ltr] { text-align:left; }
 .f:placeholder-shown { direction: rtl; text-align: right; }
 .msg { direction: rtl; text-align: right; }
-.f[dir=ltr].en:placeholder-shown { direction: ltr; text-align: left; }
+.f[dir=ltr].en:placeholder-shown { direction: rtl; text-align: right; }
 #idn, #idn:not(:placeholder-shown) { direction: rtl; text-align: right; letter-spacing: .04em; }
 .f[aria-invalid=true] { border-color: var(--err); }
 .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -128,10 +128,10 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
     <div>
       <span class="l">תפקיד</span>
       <div class="roles" role="radiogroup" aria-label="תפקיד">
-        <input type="radio" name="role" id="r1" value="מרכז"><label for="r1">מרכז</label>
+        <input type="radio" name="role" id="r1" value="מדריך קורס"><label for="r1">מדריך קורס</label>
         <input type="radio" name="role" id="r2" value="ראשג״ד"><label for="r2">ראשג״ד</label>
         <input type="radio" name="role" id="r3" value="ראש״צ"><label for="r3">ראש״צ</label>
-        <input type="radio" name="role" id="r4" value="מדריך קורס"><label for="r4">מדריך קורס</label>
+        <input type="radio" name="role" id="r4" value="מרכז"><label for="r4">מרכז</label>
         <input type="radio" name="role" id="r5" value="בוגר"><label for="r5">בוגר</label>
       </div>
       <div class="msg" id="m-role"></div>
