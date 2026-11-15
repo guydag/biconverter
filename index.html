@@ -614,7 +614,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:12";
+var VERSION = "v15.11 · 02:19";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1069,14 +1069,14 @@ function renderSaved() {
     var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
     pv.innerHTML = EYE_ICON;
     pv.addEventListener("click", function () { openPreview(d); });
-    acts.appendChild(pv);
+    acts.appendChild(b);
     if (state.isAdmin) {
       var del = document.createElement("button"); del.type = "button"; del.className = "del-btn"; del.title = "מחיקה"; del.setAttribute("aria-label", "מחיקת " + d.name);
       del.innerHTML = DEL_ICON;
       del.addEventListener("click", function () { askDelete(row, x); });
       acts.appendChild(del);
     }
-    acts.appendChild(b);
+    acts.appendChild(pv);
     row.appendChild(info); row.appendChild(acts);
     box.appendChild(row);
   });
@@ -1241,7 +1241,7 @@ function openPreview(d) {
     var what = [];
     if (newOnly) what.push("חדשים"); if (goneOnly) what.push("ביטלו");
     if (grades.length && grades.length < order.length) what.push((grades.length === 1 ? "שכבה " : "שכבות ") + gradeText(order.filter(function (g) { return grades.indexOf(g) !== -1; })));
-    count.textContent = active ? (what.length ? what.join(" · ") + " — " : "") + shown + " מתוך " + (goneOnly ? nGone : total) + " רשומים" : (marks && nFresh ? freshLine() : "");
+    count.textContent = active ? (what.length ? what.join(" · ") + " — " : "") + (goneOnly ? shown + " רשומים" : shown + " מתוך " + total + " רשומים") : (marks && nFresh ? freshLine() : "");
     wrap.classList.toggle("marks", (marks || newOnly) && nFresh > 0);
     wrap.scrollTop = 0;
     softSwap(wrap);
