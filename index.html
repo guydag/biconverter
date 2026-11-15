@@ -669,7 +669,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 11:17";
+var VERSION = "v15.11 · 11:34";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -973,13 +973,18 @@ async function download() {
 async function showGreeting(user) {
   var el = $("hello");
   el.hidden = true;
-  try {
-    var snap = await db.collection("users").doc((user.email || "").toLowerCase()).get();
-    var name = snap.exists && snap.data().name;
-    /* Greet by first name only. */
-    var first = name ? String(name).trim().split(/\s+/)[0] : "";
-    el.textContent = first ? "שלום, " + first : "שלום";
-  } catch (e) { el.textContent = "שלום"; }
+  var id = (user.email || "").toLowerCase(), name = "";
+  /* A single failed read (flaky connection, token not ready yet) used to leave a bare "שלום" until the next visit, so try a few times. */
+  for (var i = 0; i < 3 && !name; i++) {
+    try {
+      var snap = await db.collection("users").doc(id).get();
+      name = snap.exists && snap.data().name ? String(snap.data().name).trim() : "";
+      if (snap.exists) break;
+    } catch (e) { if (i < 2) await new Promise(function (r) { setTimeout(r, 700 * (i + 1)); }); }
+  }
+  /* Greet by first name only. */
+  var first = name ? name.split(/\s+/)[0] : "";
+  el.textContent = first ? "שלום, " + first : "שלום";
   el.hidden = false;
 }
 async function checkAdmin(user) {
