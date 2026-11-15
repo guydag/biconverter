@@ -599,7 +599,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 09:31";
+var VERSION = "v15.11 · 09:33";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1628,7 +1628,7 @@ function renderUsers() {
   var box = $("usersList"), st = $("usersStatus");
   box.textContent = ""; st.hidden = true;
   var me = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
-  var USERS_SHOWN = 5;
+  var USERS_SHOWN = 3;
   var all = state.users || [], q = ($("usersSearch").value || "").trim().toLowerCase();
   $("usersSearch").hidden = all.length <= USERS_SHOWN;
   var list = q ? all.filter(function (u) { return (u.name || "").toLowerCase().indexOf(q) !== -1 || u.id.toLowerCase().indexOf(q) !== -1; }) : all;
