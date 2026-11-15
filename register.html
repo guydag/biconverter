@@ -20,12 +20,17 @@ body { margin:0; background: var(--bg) linear-gradient(180deg, var(--wash) 0, va
 .logo { width:108px; height:108px; border-radius:50%; box-shadow: var(--shadow); background:#fff; }
 h1 { margin: 14px 0 4px; font-size: 26px; line-height:1.2; }
 .lead { margin:0; color: var(--muted); }
-.card { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); padding: 22px 20px 20px; display:flex; flex-direction:column; gap: 18px; }
+.card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 24px 22px 22px; display:flex; flex-direction:column; gap: 20px; }
+.intro { display:flex; flex-direction:column; gap:2px; padding-bottom:14px; border-bottom:1px solid var(--line); }
+.intro strong { font-size:17px; } .intro span { color:var(--muted); font-size:13.5px; }
+.f:placeholder-shown { direction: rtl; text-align: right; }
+.f[dir=ltr]:not(:placeholder-shown) { direction: ltr; text-align: left; }
+.f[dir=ltr].en:placeholder-shown { direction: ltr; text-align: left; }
 .steps { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
 .steps b { display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background: var(--accent); color: var(--accent-fg); font-size:12px; }
 label.l { display:block; font-weight:700; font-size:14.5px; margin-bottom:6px; }
 label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
-.f { width:100%; font: inherit; color: inherit; background: var(--bg); border:1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 48px; transition: border-color .15s, box-shadow .15s; }
+.f { width:100%; font: inherit; color: inherit; background: color-mix(in srgb, var(--bg) 55%, var(--surface)); border:1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 48px; transition: border-color .15s, box-shadow .15s; }
 .f:focus { outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
 .f[dir=ltr] { text-align:left; }
 .f[aria-invalid=true] { border-color: var(--err); }
@@ -35,10 +40,12 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
 .msg:empty { display:none; }
 .roles { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; }
 .roles input { position:absolute; opacity:0; pointer-events:none; }
-.roles label { display:grid; place-items:center; min-height:48px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; cursor:pointer; background: var(--bg); transition: all .15s; }
+.roles label { display:flex; align-items:center; justify-content:center; gap:6px; min-height:50px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; cursor:pointer; background: var(--bg); transition: all .15s; }
+.roles label::before { content:""; width:0; height:14px; transition: width .15s; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; }
+.roles input:checked + label::before { width:14px; }
 .roles input:checked + label { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .roles input:focus-visible + label { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
-.btn { font: inherit; font-weight:800; font-size:17px; border:0; border-radius: 14px; min-height: 52px; background: var(--accent); color: var(--accent-fg); cursor:pointer; transition: transform .15s, filter .15s; }
+.btn { margin-top:4px; font: inherit; font-weight:800; font-size:17px; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); border:0; border-radius: 14px; min-height: 52px; background: var(--accent); color: var(--accent-fg); cursor:pointer; transition: transform .15s, filter .15s; }
 .btn:hover { filter: brightness(1.06); } .btn:active { transform: scale(.98); }
 .btn[disabled] { opacity:.6; cursor:default; }
 .err { background: var(--err-soft); color: var(--err); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
@@ -60,10 +67,10 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
     <p class="lead">מלאו את הפרטים כדי לקבל גישה לאתר.</p>
   </header>
   <form class="card" id="f" novalidate autocomplete="off">
-    <div class="steps"><b>1</b> ממלאים פרטים <span>·</span> <b style="background:var(--line);color:var(--muted)">2</b> ממתינים לאישור מנהל</div>
+    <div class="intro"><strong>פרטים אישיים</strong><span>כל השדות חובה. אחרי השליחה מנהל יאשר את הבקשה.</span></div>
     <div>
       <label class="l" for="idn">תעודת זהות</label>
-      <input class="f" id="idn" inputmode="numeric" maxlength="9" dir="ltr" placeholder="9 ספרות" required>
+      <input class="f" id="idn" inputmode="numeric" maxlength="9" dir="ltr" placeholder="תעודת זהות בת 9 ספרות" required>
       <div class="msg" id="m-idn"></div>
     </div>
     <div>
@@ -74,12 +81,12 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
     <div class="row">
       <div>
         <label class="l" for="first">שם פרטי <small>באנגלית</small></label>
-        <input class="f" id="first" dir="ltr" autocapitalize="words" spellcheck="false" placeholder="First name" required>
+        <input id="first" dir="ltr" class="f en" autocapitalize="words" spellcheck="false" placeholder="First name" required>
         <div class="msg" id="m-first"></div>
       </div>
       <div>
         <label class="l" for="last">שם משפחה <small>באנגלית</small></label>
-        <input class="f" id="last" dir="ltr" autocapitalize="words" spellcheck="false" placeholder="Last name" required>
+        <input id="last" dir="ltr" class="f en" autocapitalize="words" spellcheck="false" placeholder="Last name" required>
         <div class="msg" id="m-last"></div>
       </div>
     </div>
