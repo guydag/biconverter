@@ -887,7 +887,7 @@ function breakdown(rows) {
 
 /* Same wording as the push notification: title line, then body line, then the link. */
 function waText(name, n) {
-  return name + " עודכן \uD83D\uDD14\nדוח חדש עם " + n + " רשומים\n" + location.origin + location.pathname;
+  return name + " עודכן \uD83D\uDD14\nדוח חדש עם " + n + " רשומים\n" + location.origin + location.pathname + "#r=" + encodeURIComponent(name);
 }
 function setShare() {
   var a = $("share");
