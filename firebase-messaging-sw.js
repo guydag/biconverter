@@ -11,20 +11,22 @@ firebase.initializeApp({
   messagingSenderId: "771775436102",
   appId: "1:771775436102:web:e1c8ef6a1cea1b95fdc147"
 });
-firebase.messaging();
-
+/* Registered before the Firebase SDK's own click handler, so this one decides where a tap goes:
+   an open window is focused and told which report to show, otherwise a new window opens on it. */
 self.addEventListener("notificationclick", function (event) {
-  event.notification.close();
   var d = event.notification.data || {}, m = d.FCM_MSG || {};
   var url = (m.fcmOptions && m.fcmOptions.link) || (m.notification && m.notification.click_action) || d.url || self.registration.scope;
-  var hash = url.indexOf("#") !== -1 ? url.slice(url.indexOf("#")) : "";
+  event.notification.close();
+  event.stopImmediatePropagation();
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
     for (var i = 0; i < list.length; i++) {
       if (list[i].url.indexOf(self.registration.scope) === 0 && "focus" in list[i]) {
-        try { list[i].postMessage({ firebaseMessaging: { payload: { fcmOptions: { link: url } } } }); } catch (e) {}
+        try { list[i].postMessage({ openReport: url }); } catch (e) {}
         return list[i].focus();
       }
     }
     return self.clients.openWindow(url);
   }));
 });
+
+firebase.messaging();

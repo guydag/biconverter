@@ -675,7 +675,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:50";
+var VERSION = "v15.11 · 10:52";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1058,7 +1058,7 @@ function openFromLink() {
 /* Site already open when the notification is tapped: the service worker posts the link to the page. */
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", function (e) {
   try {
-    var fm = e.data && e.data.firebaseMessaging, link = fm && fm.payload && fm.payload.fcmOptions && fm.payload.fcmOptions.link;
+    var dd = e.data || {}, fm = dd.firebaseMessaging, link = dd.openReport || (dd.fcmOptions && dd.fcmOptions.link) || (fm && fm.payload && fm.payload.fcmOptions && fm.payload.fcmOptions.link);
     var h = link && link.indexOf("#") !== -1 ? link.slice(link.indexOf("#")) : "";
     if (h.indexOf("#r=") === 0) { history.replaceState(null, "", location.pathname + location.search + h); if (state.saved) openFromLink(); else loadSaved(); }
   } catch (err) {}
