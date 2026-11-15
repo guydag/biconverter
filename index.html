@@ -2037,7 +2037,7 @@ function renderUsers() {
     av.textContent = (nameParts[0].charAt(0) + (nameParts.length > 1 ? nameParts[1].charAt(0) : "")).toUpperCase();
     var who = document.createElement("div"); who.className = "who";
     var nr = document.createElement("div"); nr.className = "name-row";
-    var strong = document.createElement("strong"); strong.textContent = u.name || "(ללא שם)"; nr.appendChild(strong);
+    var strong = document.createElement("strong"); strong.textContent = u.fullName || u.name || "(ללא שם)"; nr.appendChild(strong);
     if (u.admin) { var c = document.createElement("span"); c.className = "tag"; c.textContent = "מנהל"; nr.appendChild(c); }
     var meta = document.createElement("div"); meta.className = "u-meta";
     var bits = [];
