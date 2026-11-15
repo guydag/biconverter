@@ -28,7 +28,7 @@ h1 { margin: 12px 0 4px; font-size: 26px; line-height:1.2; }
 .card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 24px 22px 22px; display:flex; flex-direction:column; gap: 18px; }
 .intro { display:flex; flex-direction:column; gap:2px; padding-bottom:14px; border-bottom:1px solid var(--line); }
 .intro strong { font-size:17px; } .intro span { color:var(--muted); font-size:13.5px; }
-label.l, .l { display:block; font-weight:700; font-size:14.5px; margin-bottom:6px; }
+label.l, .l { display:block; direction: rtl; text-align: right; width:100%; font-weight:700; font-size:14.5px; margin-bottom:6px; }
 label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
 .fld { position:relative; }
 .fld .ic { position:absolute; right:14px; top:50%; transform:translateY(-50%); color: var(--muted); pointer-events:none; transition: color .15s; }
@@ -39,6 +39,7 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
 .f:focus { outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
 .f[dir=ltr] { text-align:left; }
 .f:placeholder-shown { direction: rtl; text-align: right; }
+.msg { direction: rtl; text-align: right; }
 .f[dir=ltr].en:placeholder-shown { direction: ltr; text-align: left; }
 #idn, #idn:not(:placeholder-shown) { direction: rtl; text-align: right; letter-spacing: .04em; }
 .f[aria-invalid=true] { border-color: var(--err); }
@@ -101,11 +102,10 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
   <header class="head">
     <img class="logo" src="logo.png?v=1" alt="לוגו שבט משואות יהוד" width="112" height="112">
     <h1>הרשמה לאתר רשומי משואות</h1>
-    <p class="lead">מלאו את הפרטים כדי לקבל גישה לאתר.</p>
-    <ul class="perks"><li><b>1</b> ממלאים את הפרטים</li><li><b>2</b> מנהל מאשר את הבקשה</li><li><b>3</b> מקבלים פרטי כניסה</li></ul>
+    <p class="lead">מלאו את הפרטים. מנהל יאשר את הבקשה.</p>
+    <ul class="perks"><li><b>1</b> ממלאים את הפרטים</li><li><b>2</b> מנהל מאשר</li><li><b>3</b> מקבלים פרטי כניסה</li></ul>
   </header>
   <form class="card" id="f" novalidate autocomplete="off">
-    <div class="intro"><strong>פרטים אישיים</strong><span>כל השדות חובה. אחרי השליחה מנהל יאשר את הבקשה.</span></div>
     <div class="row">
       <div>
         <label class="l" for="idn">תעודת זהות</label>
@@ -113,22 +113,15 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
         <div class="msg" id="m-idn"></div>
       </div>
       <div>
-        <label class="l" for="full">שם מלא <small>בעברית</small></label>
+        <label class="l" for="full">שם מלא בעברית</label>
         <div class="fld"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.5-5.5 7-5.5s6.2 1.9 7 5.5"/></svg><input class="f" id="full" placeholder="פרטי ומשפחה" required><svg class="tk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
         <div class="msg" id="m-full"></div>
       </div>
     </div>
-    <div class="row">
-      <div>
-        <label class="l" for="first">שם פרטי <small>באנגלית</small></label>
-        <div class="fld"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18l4.5-12L13 18M5.7 14h5.6M16 18v-6.5a2.5 2.5 0 015 0V18M16 14.5h5"/></svg><input id="first" dir="ltr" class="f en" autocapitalize="words" spellcheck="false" placeholder="First name" required><svg class="tk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-        <div class="msg" id="m-first"></div>
-      </div>
-      <div>
-        <label class="l" for="last">שם משפחה <small>באנגלית</small></label>
-        <div class="fld"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18l4.5-12L13 18M5.7 14h5.6M16 18v-6.5a2.5 2.5 0 015 0V18M16 14.5h5"/></svg><input id="last" dir="ltr" class="f en" autocapitalize="words" spellcheck="false" placeholder="Last name" required><svg class="tk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-        <div class="msg" id="m-last"></div>
-      </div>
+    <div>
+      <label class="l" for="first">שם משתמש באנגלית</label>
+      <div class="fld"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18l4.5-12L13 18M5.7 14h5.6M16 18v-6.5a2.5 2.5 0 015 0V18M16 14.5h5"/></svg><input id="first" dir="ltr" class="f en" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="אותיות בלבד, למשל noacohen" required><svg class="tk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <div class="msg" id="m-first"></div>
     </div>
     <div>
       <span class="l">תפקיד</span>
@@ -175,19 +168,16 @@ function liveCheck(id, bad, text) {
   });
 }
 liveCheck("full", /[^\u0590-\u05FF \-'"\u05F3\u05F4]/, "בשדה הזה אפשר לכתוב באותיות בעברית בלבד.");
-liveCheck("first", /[^A-Za-z '\-]/, "בשדה הזה אפשר לכתוב באותיות באנגלית בלבד.");
-liveCheck("last", /[^A-Za-z '\-]/, "בשדה הזה אפשר לכתוב באותיות באנגלית בלבד.");
+liveCheck("first", /[^A-Za-z]/, "שם משתמש יכול להכיל אותיות באנגלית בלבד, בלי רווחים וספרות.");
 liveCheck("idn", /\D/, "בשדה הזה אפשר לכתוב ספרות בלבד.");
-function cap(id) { $(id).addEventListener("blur", function () { this.value = this.value.trim().replace(/\s+/g, " ").replace(/(^|[ \-'])([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); }); }); }
-cap("first"); cap("last");
+$("first").addEventListener("blur", function () { this.value = this.value.trim().toLowerCase(); });
 $("f").addEventListener("submit", async function (ev) {
   ev.preventDefault(); clear();
-  var idn = $("idn").value.trim(), full = $("full").value.trim().replace(/\s+/g, " "), first = $("first").value.trim(), last = $("last").value.trim();
+  var idn = $("idn").value.trim(), full = $("full").value.trim().replace(/\s+/g, " "), first = $("first").value.trim().toLowerCase(), last = "";
   var rb = document.querySelector('input[name=role]:checked'), ok = true;
   if (!validId(idn)) ok = fail("idn", "תעודת הזהות אינה תקינה.") && ok;
   if (full.split(" ").length < 2 || !/^[\u0590-\u05FF][\u0590-\u05FF \-'"\u05F3\u05F4]*$/.test(full) || full.replace(/[^\u0590-\u05FF]/g, "").length < 4) ok = fail("full", "נא לכתוב שם פרטי ושם משפחה בעברית.") && ok;
-  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(first) || first.replace(/[^A-Za-z]/g, "").length < 2) ok = fail("first", "נא לכתוב באותיות באנגלית.") && ok;
-  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(last) || last.replace(/[^A-Za-z]/g, "").length < 2) ok = fail("last", "נא לכתוב באותיות באנגלית.") && ok;
+  if (!/^[a-z]{3,20}$/.test(first)) ok = fail("first", "שם משתמש: 3 עד 20 אותיות באנגלית, בלי רווחים וספרות.") && ok;
   if (!rb) { $("m-role").textContent = "נא לבחור תפקיד."; ok = false; }
   if (!ok || document.querySelector(".msg:not(:empty)")) return;
   var btn = $("go"); btn.disabled = true; $("goTxt").textContent = "שולח…";
@@ -206,8 +196,7 @@ function checkAll() {
   setValid("idn", validId($("idn").value));
   var fu = $("full").value.trim().replace(/\s+/g, " ");
   setValid("full", fu.split(" ").length >= 2 && fu.replace(/[^\u0590-\u05FF]/g, "").length >= 4);
-  setValid("first", /^[A-Za-z][A-Za-z '\-]*$/.test($("first").value.trim()) && $("first").value.replace(/[^A-Za-z]/g, "").length >= 2);
-  setValid("last", /^[A-Za-z][A-Za-z '\-]*$/.test($("last").value.trim()) && $("last").value.replace(/[^A-Za-z]/g, "").length >= 2);
+  setValid("first", /^[A-Za-z]{3,20}$/.test($("first").value.trim()));
 }
 Array.prototype.forEach.call(document.querySelectorAll(".f"), function (f) { f.addEventListener("input", checkAll); f.addEventListener("blur", checkAll); });
 </script>
