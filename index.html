@@ -608,7 +608,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:42";
+var VERSION = "v15.11 · 02:45";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1818,7 +1818,7 @@ async function openDict() {
       await db.collection("meta").doc("dict").set({ pairs: clean.map(function (p) { return p[0] + DICT_SEP + p[1]; }) });
       ALIASES = clean; pairs = clean.map(function (p) { return [p[0], p[1]]; }); draw();
       msg.textContent = "נשמר."; msg.hidden = false;
-    } catch (e) { msg.textContent = "השמירה לא הצליחה."; msg.hidden = false; }
+    } catch (e) { msg.textContent = e && e.code === "permission-denied" ? "אין הרשאת כתיבה בבסיס הנתונים." : "השמירה לא הצליחה."; msg.hidden = false; }
     save.disabled = false;
   });
   foot.appendChild(save); foot.appendChild(add); foot.appendChild(msg);
