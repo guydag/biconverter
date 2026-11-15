@@ -401,6 +401,21 @@ footer .version { margin-top: 4px; }
 .ptr.spin .arr { opacity: 0; }
 @keyframes ptrspin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ptr.snap, .ptr .arr { transition: none; } .ptr.spin svg { animation-duration: 1.6s; } }
+.user-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.user-meta .um-role { background: var(--accent-soft); color: var(--accent); font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.user-row .who .user-meta bdi { direction: ltr; unicode-bidi: isolate; }
+.eu-body { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px 0; overflow-y: auto; overscroll-behavior: contain; }
+.eu-f { display: flex; flex-direction: column; gap: 6px; }
+.eu-f > label, .eu-lab { font-size: 14px; font-weight: 700; color: var(--fg); }
+.eu-msg { margin: 0; min-height: 0; font-size: 13px; color: var(--danger, #b3261e); }
+.eu-msg:empty { display: none; }
+.eu-roles { display: flex; flex-wrap: wrap; gap: 8px; }
+.eu-roles input { position: absolute; opacity: 0; pointer-events: none; }
+.eu-roles label { padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 999px; font-weight: 700; font-size: 14px; cursor: pointer; background: var(--bg); transition: all .15s; }
+.eu-roles input:checked + label { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.eu-roles input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eu-foot { position: sticky; bottom: 0; background: var(--surface); margin: 4px -18px 0; justify-content: flex-start; }
+.eu-foot .btn { min-width: 96px; }
 .pend-ok { display: flex; margin-top: 8px; }
 .pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
@@ -1816,7 +1831,7 @@ async function loadUsers() {
     var us = await db.collection("users").get();
     var as = await db.collection("admins").get();
     var admins = {}; as.forEach(function (d) { admins[d.id] = true; });
-    var list = []; us.forEach(function (d) { list.push({ id: d.id, name: (d.data() || {}).name || "", admin: !!admins[d.id] }); });
+    var list = []; us.forEach(function (d) { var dd = d.data() || {}; list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", admin: !!admins[d.id] }); });
     Object.keys(admins).forEach(function (id) { if (!list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
     list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
@@ -1860,7 +1875,7 @@ async function loadPending() {
         try {
           var ex = await db.collection("users").doc(email).get();
           if (ex.exists) { pendMsg("כבר קיים משתמש בשם %s. אפשר לדחות את הבקשה או לשנות את שם המשתמש הקיים.", [uid]); return; }
-          await db.collection("users").doc(email).set({ name: name });
+          await db.collection("users").doc(email).set({ name: name, fullName: (d.fullName || "").trim(), idNumber: d.idNumber || "", role: d.role || "" });
           await db.collection("pending").doc(it.id).delete();
           pendMsg("%s אושר. כדי שיוכל להיכנס, יוצרים ב-Firebase › Authentication › Add user משתמש עם האימייל %s וסיסמה.", [name, email]);
           loadUsers();
@@ -1917,6 +1932,12 @@ function renderUsers() {
     if (u.admin) { var c = document.createElement("span"); c.className = "tag"; c.textContent = "מנהל"; nr.appendChild(c); }
     var sp = document.createElement("span"); sp.textContent = shortId(u.id);
     who.appendChild(nr); who.appendChild(sp);
+    if (u.role || u.idNumber) {
+      var meta = document.createElement("div"); meta.className = "user-meta";
+      if (u.role) { var rb = document.createElement("span"); rb.className = "um-role"; rb.textContent = u.role; meta.appendChild(rb); }
+      if (u.idNumber) { var ib = document.createElement("bdi"); ib.textContent = "ת״ז " + u.idNumber; meta.appendChild(ib); }
+      who.appendChild(meta);
+    }
     var acts = document.createElement("div"); acts.className = "user-actions";
     var self = u.id === me;
     if (!self) acts.appendChild(mkIcon(u.admin ? "shieldoff" : "shield", u.admin ? "ביטול ניהול" : "הפיכה למנהל", "", async function () {
@@ -1926,7 +1947,7 @@ function renderUsers() {
         loadUsers();
       } catch (e) { userMsg("העדכון לא הצליח."); }
     }));
-    acts.appendChild(mkIcon("pen", "שינוי שם", "", function () { editName(row, u); }));
+    acts.appendChild(mkIcon("pen", "עריכת פרטים", "", function () { editUser(u); }));
     if (!self) acts.appendChild(mkIcon("trash", "הסרה", "del", function () { askRemove(row, u); }));
     row.appendChild(who); row.appendChild(acts);
     box.appendChild(row);
@@ -1935,15 +1956,71 @@ function renderUsers() {
 $("usersSearch").addEventListener("input", function () { state.usersPage = 0; renderUsers(); });
 
 $("usersMore").addEventListener("click", function () { state.usersAll = !state.usersAll; renderUsers(); });
-function editName(row, u) {
-  row.textContent = "";
-  var inp = document.createElement("input"); inp.className = "field inline"; inp.value = u.name; inp.setAttribute("aria-label", "שם");
-  var ok = mkBtn("שמירה", "primary", async function () {
-    var v = inp.value.trim(); if (!v) return;
-    try { await db.collection("users").doc(u.id).set({ name: v }); loadUsers(); } catch (e) { userMsg("השמירה לא הצליחה."); }
+var ROLES = ["מדריך קורס", "ראשג״ד", "ראש״צ", "מרכז", "בוגר"];
+function validIsraeliId(v) {
+  if (!/^\d{9}$/.test(v)) return false;
+  var sum = 0;
+  for (var i = 0; i < 9; i++) { var n = Number(v[i]) * (i % 2 ? 2 : 1); sum += n > 9 ? n - 9 : n; }
+  return sum % 10 === 0;
+}
+function editUser(u) {
+  closePreview(true);
+  var ov = document.createElement("div"); ov.className = "pv-overlay"; ov.id = "pvOverlay";
+  var box = document.createElement("div"); box.className = "pv-box"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "עריכת משתמש");
+  var head = document.createElement("div"); head.className = "pv-head";
+  var tt = document.createElement("div"); tt.className = "pv-title";
+  var h = document.createElement("strong"); h.textContent = "עריכת משתמש"; tt.appendChild(h);
+  var sub = document.createElement("span"); sub.dir = "ltr"; sub.textContent = shortId(u.id); tt.appendChild(sub);
+  var x = document.createElement("button"); x.type = "button"; x.className = "close-x pv-x"; x.setAttribute("aria-label", "סגירה"); x.title = "סגירה";
+  x.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  x.addEventListener("click", function () { closePreview(); });
+  head.appendChild(tt); head.appendChild(x);
+
+  var body = document.createElement("form"); body.className = "eu-body"; body.noValidate = true;
+  function fieldBlock(label, input, id) {
+    var w = document.createElement("div"); w.className = "eu-f";
+    var l = document.createElement("label"); l.htmlFor = id; l.textContent = label;
+    var m = document.createElement("p"); m.className = "eu-msg"; m.id = id + "Msg"; m.setAttribute("role", "alert");
+    w.appendChild(l); w.appendChild(input); w.appendChild(m); return w;
+  }
+  var fn = document.createElement("input"); fn.className = "field"; fn.id = "euName"; fn.value = u.fullName || u.name || ""; fn.autocomplete = "off"; fn.placeholder = "שם פרטי ושם משפחה";
+  var idn = document.createElement("input"); idn.className = "field"; idn.id = "euId"; idn.value = u.idNumber || ""; idn.inputMode = "numeric"; idn.maxLength = 9; idn.dir = "ltr"; idn.autocomplete = "off"; idn.placeholder = "9 ספרות";
+  var rl = document.createElement("div"); rl.className = "eu-roles"; rl.setAttribute("role", "radiogroup"); rl.setAttribute("aria-label", "תפקיד");
+  var role = u.role || "";
+  ROLES.forEach(function (r, i) {
+    var inp = document.createElement("input"); inp.type = "radio"; inp.name = "euRole"; inp.id = "euR" + i; inp.value = r; inp.checked = r === role;
+    inp.addEventListener("click", function () { if (role === r) { inp.checked = false; role = ""; } else role = r; });
+    var lb = document.createElement("label"); lb.htmlFor = inp.id; lb.textContent = r;
+    rl.appendChild(inp); rl.appendChild(lb);
   });
-  row.appendChild(inp); row.appendChild(ok); row.appendChild(mkBtn("ביטול", "ghost", renderUsers));
-  inp.focus();
+  body.appendChild(fieldBlock("שם מלא", fn, "euName"));
+  body.appendChild(fieldBlock("תעודת זהות", idn, "euId"));
+  var rw = document.createElement("div"); rw.className = "eu-f"; var rlab = document.createElement("span"); rlab.className = "eu-lab"; rlab.textContent = "תפקיד"; rw.appendChild(rlab); rw.appendChild(rl); body.appendChild(rw);
+  var err = document.createElement("p"); err.className = "eu-msg eu-err"; err.setAttribute("role", "alert"); body.appendChild(err);
+
+  var foot = document.createElement("div"); foot.className = "pv-foot eu-foot";
+  var save = document.createElement("button"); save.type = "submit"; save.className = "btn primary small"; save.textContent = "שמירה";
+  var cancel = document.createElement("button"); cancel.type = "button"; cancel.className = "btn ghost small"; cancel.textContent = "ביטול"; cancel.addEventListener("click", function () { closePreview(); });
+  foot.appendChild(save); foot.appendChild(cancel); body.appendChild(foot);
+
+  body.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var bad = false, name = fn.value.replace(/\s+/g, " ").trim(), id = idn.value.trim();
+    $("euNameMsg").textContent = ""; $("euIdMsg").textContent = ""; err.textContent = "";
+    if (!/^[\u0590-\u05FF][\u0590-\u05FF\s'"׳״-]*$/.test(name) || name.length < 2) { $("euNameMsg").textContent = "יש להזין שם בעברית."; bad = true; }
+    if (id && !validIsraeliId(id)) { $("euIdMsg").textContent = "מספר תעודת הזהות אינו תקין."; bad = true; }
+    if (bad) return;
+    save.disabled = true;
+    try {
+      await db.collection("users").doc(u.id).set({ name: name.split(" ")[0], fullName: name, idNumber: id, role: role });
+      closePreview(); loadUsers();
+    } catch (er) { err.textContent = "השמירה לא הצליחה. נסו שוב."; save.disabled = false; }
+  });
+  box.appendChild(head); box.appendChild(body); ov.appendChild(box);
+  ov.addEventListener("mousedown", function (e) { if (e.target === ov) closePreview(); });
+  document.body.appendChild(ov);
+  document.documentElement.classList.add("pv-open");
+  void ov.offsetWidth; ov.classList.add("in"); fn.focus({ preventScroll: true });
 }
 function askRemove(row, u) {
   row.textContent = "";
