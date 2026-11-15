@@ -15,7 +15,10 @@
 }
 .pv-table.marks tr.fresh td { background: var(--accent-soft); }
 .pv-table.marks td.newcell::after { content: "חדש"; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; display: inline-block; }
-.chip.chip-new { border-style: dashed; }
+.pv-changes { display: flex; gap: 8px; padding: 2px 0 4px; }
+.chip.chg { flex: 1 1 0; justify-content: center; font-weight: 700; }
+.chip.chg-new:not(.on) { color: var(--accent); border-color: var(--accent); }
+.chip.chg-gone:not(.on) { color: var(--muted); }
 .newtag-unused { display: inline-block; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; }
 </style>
 <title>רשומי משואות</title>
@@ -611,7 +614,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:06";
+var VERSION = "v15.11 · 02:09";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1152,27 +1155,42 @@ function openPreview(d) {
   var counts = {}, order = [];
   if (gi !== -1) rows.slice(1).forEach(function (r) { var g = norm(r[gi]); if (!g) return; if (!(g in counts)) { counts[g] = 0; order.push(g); } counts[g]++; });
   order.sort(function (a, b) { return gradeIndex(a) - gradeIndex(b) || a.localeCompare(b, "he"); });
-  if (order.length > 1 || nFresh || nGone) {
-    chips = document.createElement("div"); chips.className = "pv-chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "סינון לפי שכבה");
-    [""].concat(order.length > 1 ? order : []).concat(nFresh ? ["\u0000new"] : []).concat(nGone ? ["\u0000gone"] : []).forEach(function (g) {
-      var c = document.createElement("button"); c.type = "button"; c.className = "chip" + (g === "" ? " on" : "");
-      var isNew = g === "\u0000new", isGone = g === "\u0000gone";
-      c.textContent = g === "" ? "הכל" : isNew ? "חדשים" : isGone ? "ביטלו" : g; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
-      if (isNew || isGone) c.classList.add("chip-new");
-      if (g !== "") { var n = document.createElement("small"); n.textContent = isNew ? nFresh : isGone ? nGone : counts[g]; c.appendChild(n); }
-      c.addEventListener("click", function () {
-        /* "הכל" clears the selection; a grade toggles on and off, and several can be on together. */
-        if (g === "") { grades = []; newOnly = false; goneOnly = false; }
-        else if (isNew) { newOnly = !newOnly; if (newOnly) goneOnly = false; }
-        else if (isGone) { goneOnly = !goneOnly; if (goneOnly) newOnly = false; }
-        else { var i = grades.indexOf(g); if (i === -1) grades.push(g); else grades.splice(i, 1); }
-        Array.prototype.forEach.call(chips.children, function (k) { k.classList.toggle("on", k.dataset.g === "" ? !grades.length && !newOnly && !goneOnly : k.dataset.g === "\u0000new" ? newOnly : k.dataset.g === "\u0000gone" ? goneOnly : grades.indexOf(k.dataset.g) !== -1); k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false"); });
-        applyFilter(); prepareGrade();
-        c.scrollIntoView({ block: "nearest", inline: "nearest" });
-      });
-      chips.appendChild(c);
+  var allChips = [];
+  function syncChips() {
+    allChips.forEach(function (k) {
+      var g = k.dataset.g;
+      k.classList.toggle("on", g === "" ? !grades.length && !newOnly && !goneOnly : g === "\u0000new" ? newOnly : g === "\u0000gone" ? goneOnly : grades.indexOf(g) !== -1);
+      k.setAttribute("aria-pressed", k.classList.contains("on") ? "true" : "false");
     });
+  }
+  function mkChip(g, label, num, extra) {
+    var c = document.createElement("button"); c.type = "button"; c.className = "chip" + (extra ? " " + extra : "") + (g === "" ? " on" : "");
+    c.textContent = label; c.dataset.g = g; c.setAttribute("aria-pressed", g === "" ? "true" : "false");
+    if (num !== null) { var n = document.createElement("small"); n.textContent = num; c.appendChild(n); }
+    var isNew = g === "\u0000new", isGone = g === "\u0000gone";
+    c.addEventListener("click", function () {
+      /* "הכל" clears everything; grades toggle and can be combined; "חדשים" / "ביטלו" are one or the other. */
+      if (g === "") { grades = []; newOnly = false; goneOnly = false; }
+      else if (isNew) { newOnly = !newOnly; if (newOnly) goneOnly = false; }
+      else if (isGone) { goneOnly = !goneOnly; if (goneOnly) newOnly = false; }
+      else { var i = grades.indexOf(g); if (i === -1) grades.push(g); else grades.splice(i, 1); }
+      syncChips(); applyFilter(); prepareGrade();
+      c.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+    allChips.push(c);
+    return c;
+  }
+  if (order.length > 1) {
+    chips = document.createElement("div"); chips.className = "pv-chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "סינון לפי שכבה");
+    chips.appendChild(mkChip("", "הכל", null));
+    order.forEach(function (g) { chips.appendChild(mkChip(g, g, counts[g])); });
     sw.appendChild(chips);
+  }
+  if (nFresh || nGone) {
+    var chg = document.createElement("div"); chg.className = "pv-changes"; chg.setAttribute("role", "group"); chg.setAttribute("aria-label", "שינויים מהדוח הקודם");
+    if (nFresh) chg.appendChild(mkChip("\u0000new", "+ חדשים", nFresh, "chg chg-new"));
+    if (nGone) chg.appendChild(mkChip("\u0000gone", "\u2212 ביטלו", nGone, "chg chg-gone"));
+    sw.appendChild(chg);
   }
   var wrap = document.createElement("div"); wrap.className = "pv-table";
   /* The header is its own non-scrolling table above the list, so it never overlaps the rows (sticky headers misbehave on iOS). */
@@ -1219,7 +1237,11 @@ function openPreview(d) {
       tr.hidden = !hit; if (hit) shown++;
     });
     none.hidden = shown > 0;
-    count.textContent = (si.value.trim() || grades.length || newOnly || goneOnly) ? shown + " מתוך " + (goneOnly ? nGone : total) + " רשומים" : (marks && nFresh ? freshLine() : "");
+    var active = si.value.trim() || grades.length || newOnly || goneOnly;
+    var what = [];
+    if (newOnly) what.push("חדשים"); if (goneOnly) what.push("ביטלו");
+    if (grades.length && grades.length < order.length) what.push((grades.length === 1 ? "שכבה " : "שכבות ") + gradeText(order.filter(function (g) { return grades.indexOf(g) !== -1; })));
+    count.textContent = active ? (what.length ? what.join(" · ") + " — " : "") + shown + " מתוך " + (goneOnly ? nGone : total) + " רשומים" : (marks && nFresh ? freshLine() : "");
     wrap.classList.toggle("marks", (marks || newOnly) && nFresh > 0);
     wrap.scrollTop = 0;
     softSwap(wrap);
