@@ -16,6 +16,8 @@
 .pv-table.marks tr.fresh td { background: var(--accent-soft); }
 .pv-table.marks td.newcell::after { content: "חדש"; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; vertical-align: middle; display: inline-block; }
 .pv-changes { display: flex; gap: 8px; padding: 2px 0 4px; }
+.pv-table td.gonecell::after { content: "ביטל"; margin-inline-start: 8px; padding: 1px 7px; border-radius: 999px; background: var(--err); color: #fff; font-size: 11px; font-weight: 700; vertical-align: middle; display: inline-block; }
+.pv-table tr.gone td { background: var(--err-soft); }
 .chip.chg { flex: 1 1 0; justify-content: center; font-weight: 700; }
 .chip.chg-new:not(.on) { color: var(--accent); border-color: var(--accent); }
 .chip.chg-gone:not(.on) { color: var(--muted); }
@@ -614,7 +616,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:19";
+var VERSION = "v15.11 · 02:20";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1220,6 +1222,7 @@ function openPreview(d) {
   goneList.forEach(function (g) {
     var tr = document.createElement("tr"); tr.className = "gone"; tr.hidden = true;
     for (var ci = 0; ci < cols; ci++) { var td = document.createElement("td"); td.textContent = ci === fiG ? g[0] : ci === liG ? g[1] : ci === gi ? g[2] : ""; tr.appendChild(td); }
+    if (tr.cells[liG]) tr.cells[liG].className = "gonecell";
     tbd.appendChild(tr);
   });
   wrap.appendChild(t);
