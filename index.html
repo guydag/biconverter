@@ -418,6 +418,33 @@ footer .version { margin-top: 4px; }
 .eu-foot { position: sticky; bottom: 0; background: var(--surface); margin: 4px -18px 0; justify-content: flex-start; }
 .eu-foot .btn { min-width: 96px; }
 .test-ribbon { position: fixed; top: 0; left: 0; z-index: 70; background: #6b3fa0; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 10px; border-bottom-right-radius: 8px; pointer-events: none; }
+.user-row { display: grid; grid-template-columns: 44px 1fr 36px; gap: 12px; align-items: center; padding: 12px 2px; }
+.user-row { position: relative; min-height: 69px; }
+#usersList { position: relative; }
+.user-row .u-menu { position: absolute; left: 6px; top: calc(100% - 8px); z-index: 30; width: min(240px, 80%); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); box-shadow: 0 10px 30px rgba(60,30,10,.22); animation: menuIn .14s ease-out; }
+.user-row:has(.u-menu:not([hidden])) { z-index: 40; }
+.user-row .u-menu.up { top: auto; bottom: calc(100% - 8px); }
+@keyframes menuIn { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.u-confirm { margin: 0; padding: 12px 14px 4px; font-size: 14px; font-weight: 600; line-height: 1.4; }
+.u-confirm-acts { display: flex; gap: 8px; padding: 8px 14px 12px; flex-direction: row-reverse; justify-content: flex-start; }
+.u-confirm-acts .btn { min-width: 84px; }
+.u-av { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 16px; letter-spacing: 0; direction: rtl; background: var(--accent-soft); color: var(--accent); }
+.u-av.admin { background: var(--accent); color: var(--accent-fg); }
+.user-row .who strong { font-size: 16px; font-weight: 800; }
+.u-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 3px; font-size: 13px; color: var(--muted); }
+.u-meta .u-role { color: var(--fg); font-weight: 700; }
+.u-meta .u-un, .u-meta .u-id { direction: ltr; unicode-bidi: isolate; }
+.u-meta .u-un { font-weight: 600; }
+.u-dot { width: 3px; height: 3px; border-radius: 50%; background: #cbb9aa; }
+.u-more { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.u-more:focus-visible, .u-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.u-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 0; background: transparent; color: var(--fg); font: inherit; font-weight: 600; font-size: 15px; text-align: start; cursor: pointer; }
+.u-item + .u-item { border-top: 1px solid var(--line); }
+.u-item.danger { color: var(--err); }
+.u-ic { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.users-summary { display: flex; gap: 8px; margin: 4px 2px 6px; font-size: 13px; color: var(--muted); }
+.users-summary b { color: var(--fg); }
+.pg-btn { width: 44px; height: 44px; }
 .pend-ok { display: flex; margin-top: 8px; }
 .pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
@@ -697,7 +724,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v1.4";
+var VERSION = "v1.5";
 var IS_TEST = /\/test\/(index\.html)?$/.test(location.pathname);
 if (IS_TEST) { VERSION += " · בדיקות"; (function () { var b = document.createElement("div"); b.className = "test-ribbon"; b.textContent = "סביבת בדיקות"; document.body.appendChild(b); })(); }
 /* Pull down from the top of the screen to refresh, like a regular phone app. */
@@ -1953,41 +1980,80 @@ function renderUsers() {
   if (q && !list.length) { var none = document.createElement("p"); none.className = "note"; none.textContent = "לא נמצאו משתמשים."; box.appendChild(none); }
   var pages = Math.max(1, Math.ceil(list.length / USERS_SHOWN));
   state.usersPage = Math.min(Math.max(0, state.usersPage || 0), pages - 1);
+  var from0 = state.usersPage * USERS_SHOWN;
   var pg = $("usersPager"); pg.textContent = ""; pg.hidden = pages < 2;
   if (pages > 1) {
     var mk = function (lbl, aria, to, dis) { var b = document.createElement("button"); b.type = "button"; b.className = "pg-btn"; b.innerHTML = lbl; b.setAttribute("aria-label", aria); b.disabled = dis; b.addEventListener("click", function () { state.usersPage = to; renderUsers(); }); return b; };
-    var lab = document.createElement("span"); lab.className = "pg-lab"; lab.textContent = "עמוד " + (state.usersPage + 1) + " מתוך " + pages;
+    var lab = document.createElement("span"); lab.className = "pg-lab"; var rg = document.createElement("bdi"); rg.dir = "ltr"; rg.textContent = (from0 + 1) + "–" + Math.min(from0 + USERS_SHOWN, list.length); lab.appendChild(rg); lab.appendChild(document.createTextNode(" מתוך " + list.length));
     pg.appendChild(mk('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>', "העמוד הקודם", state.usersPage - 1, state.usersPage === 0)); pg.appendChild(lab); pg.appendChild(mk('<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>', "העמוד הבא", state.usersPage + 1, state.usersPage >= pages - 1));
   }
-  list.slice(state.usersPage * USERS_SHOWN, (state.usersPage + 1) * USERS_SHOWN).forEach(function (u) {
-    var row = document.createElement("div"); row.className = "user-row";
-    var who = document.createElement("div"); who.className = "who";
-    var strong = document.createElement("strong"); strong.textContent = u.name || "(ללא שם)";
-    var nr = document.createElement("div"); nr.className = "name-row"; nr.appendChild(strong);
-    if (u.admin) { var c = document.createElement("span"); c.className = "tag"; c.textContent = "מנהל"; nr.appendChild(c); }
-    var sp = document.createElement("span"); sp.textContent = shortId(u.id);
-    who.appendChild(nr); who.appendChild(sp);
-    if (u.role || u.idNumber) {
-      var meta = document.createElement("div"); meta.className = "user-meta";
-      if (u.role) { var rb = document.createElement("span"); rb.className = "um-role"; rb.textContent = u.role; meta.appendChild(rb); }
-      if (u.idNumber) { var ib = document.createElement("bdi"); ib.textContent = "ת״ז " + u.idNumber; meta.appendChild(ib); }
-      who.appendChild(meta);
-    }
-    var acts = document.createElement("div"); acts.className = "user-actions";
+  box.style.minHeight = pages > 1 ? (USERS_SHOWN * 69) + "px" : "";
+  var from = state.usersPage * USERS_SHOWN;
+  list.slice(from, from + USERS_SHOWN).forEach(function (u) {
     var self = u.id === me;
-    if (!self) acts.appendChild(mkIcon(u.admin ? "shieldoff" : "shield", u.admin ? "ביטול ניהול" : "הפיכה למנהל", "", async function () {
+    var row = document.createElement("div"); row.className = "user-row";
+    var av = document.createElement("div"); av.className = "u-av" + (u.admin ? " admin" : ""); av.setAttribute("aria-hidden", "true");
+    var nameParts = (u.fullName || u.name || shortId(u.id)).trim().split(/\s+/);
+    av.textContent = (nameParts[0].charAt(0) + (nameParts.length > 1 ? nameParts[1].charAt(0) : "")).toUpperCase();
+    var who = document.createElement("div"); who.className = "who";
+    var nr = document.createElement("div"); nr.className = "name-row";
+    var strong = document.createElement("strong"); strong.textContent = u.name || "(ללא שם)"; nr.appendChild(strong);
+    if (u.admin) { var c = document.createElement("span"); c.className = "tag"; c.textContent = "מנהל"; nr.appendChild(c); }
+    var meta = document.createElement("div"); meta.className = "u-meta";
+    var bits = [];
+    if (u.role) bits.push(["role", u.role]);
+    if (u.idNumber) bits.push(["id", u.idNumber]);
+    bits.push(["un", shortId(u.id)]);
+    bits.forEach(function (bt, i) {
+      if (i) { var d = document.createElement("i"); d.className = "u-dot"; meta.appendChild(d); }
+      var e = document.createElement(bt[0] === "role" ? "span" : "bdi"); e.className = "u-" + bt[0]; e.textContent = bt[1]; meta.appendChild(e);
+    });
+    who.appendChild(nr); who.appendChild(meta);
+    var more = document.createElement("button"); more.type = "button"; more.className = "u-more"; more.setAttribute("aria-label", "פעולות עבור " + (u.name || shortId(u.id))); more.setAttribute("aria-haspopup", "menu"); more.setAttribute("aria-expanded", "false");
+    more.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>';
+    var menu = document.createElement("div"); menu.className = "u-menu"; menu.hidden = true; menu.setAttribute("role", "menu");
+    function item(icon, label, cls, fn) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "u-item " + (cls || ""); b.setAttribute("role", "menuitem");
+      b.innerHTML = '<svg class="u-ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[icon] + '</svg>'; var t = document.createElement("span"); t.textContent = label; b.appendChild(t);
+      b.addEventListener("click", function (ev) { ev.stopPropagation(); if (cls === "danger") { fn(); return; } menu.hidden = true; more.setAttribute("aria-expanded", "false"); fn(); }); menu.appendChild(b);
+    }
+    item("pen", "עריכת פרטים", "", function () { editUser(u); });
+    if (!self) item(u.admin ? "shieldoff" : "shield", u.admin ? "ביטול ניהול" : "הפיכה למנהל", "", async function () {
       try {
         if (u.admin) await db.collection("admins").doc(u.id).delete();
         else await db.collection("admins").doc(u.id).set({ role: "admin" });
         loadUsers();
       } catch (e) { userMsg("העדכון לא הצליח."); }
-    }));
-    acts.appendChild(mkIcon("pen", "עריכת פרטים", "", function () { editUser(u); }));
-    if (!self) acts.appendChild(mkIcon("trash", "הסרה", "del", function () { askRemove(row, u); }));
-    row.appendChild(who); row.appendChild(acts);
+    });
+    if (!self) item("trash", "הסרת משתמש", "danger", function () {
+      menu.textContent = "";
+      var p = document.createElement("p"); p.className = "u-confirm"; p.textContent = "להסיר את " + (u.name || shortId(u.id)) + "? הכניסה עצמה נמחקת ב-Firebase.";
+      var acts = document.createElement("div"); acts.className = "u-confirm-acts";
+      var no = mkBtn("ביטול", "ghost", function () { menu.hidden = true; more.setAttribute("aria-expanded", "false"); renderUsers(); });
+      var yes = mkBtn("הסרה", "danger", async function () {
+        try { await db.collection("users").doc(u.id).delete(); await db.collection("admins").doc(u.id).delete(); loadUsers(); }
+        catch (e) { userMsg("ההסרה לא הצליחה."); renderUsers(); }
+      });
+      acts.appendChild(yes); acts.appendChild(no); menu.appendChild(p); menu.appendChild(acts);
+    });
+    more.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = menu.hidden;
+      Array.prototype.forEach.call(document.querySelectorAll(".u-menu"), function (m) { m.hidden = true; });
+      Array.prototype.forEach.call(document.querySelectorAll(".u-more"), function (m) { m.setAttribute("aria-expanded", "false"); });
+      menu.hidden = !open; more.setAttribute("aria-expanded", String(open));
+      /* The last rows open their menu upwards so it never runs past the end of the list. */
+      menu.classList.toggle("up", Array.prototype.indexOf.call(box.querySelectorAll(".user-row"), row) >= 2);
+    });
+    row.appendChild(av); row.appendChild(who); row.appendChild(more); row.appendChild(menu);
     box.appendChild(row);
   });
 }
+document.addEventListener("click", function (e) {
+  if (e.target.closest && e.target.closest(".u-menu, .u-more")) return;
+  Array.prototype.forEach.call(document.querySelectorAll(".u-menu"), function (m) { m.hidden = true; });
+  Array.prototype.forEach.call(document.querySelectorAll(".u-more"), function (m) { m.setAttribute("aria-expanded", "false"); });
+});
 $("usersSearch").addEventListener("input", function () { state.usersPage = 0; renderUsers(); });
 
 $("usersMore").addEventListener("click", function () { state.usersAll = !state.usersAll; renderUsers(); });
