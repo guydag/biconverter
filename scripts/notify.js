@@ -37,7 +37,7 @@ async function main() {
     });
     const tokens = Object.keys(owners);
     const nNew = Array.isArray(f.d.fresh) ? f.d.fresh.length : 0;
-    const body = (nNew === 0 ? "דוח חדש" : nNew === 1 ? "נרשם חדש אחד" : "נרשמו " + nNew + " חדשים") + " · " + f.d.rows + " רשומים בדוח";
+    const body = (nNew === 0 ? "דוח חדש" : nNew === 1 ? "נרשם חדש אחד" : "נרשמו " + nNew + " חדשים") + " · " + f.d.rows + " רשומים סה״כ בדוח";
     console.log(name + ": sending to", tokens.length, "devices");
     for (let i = 0; i < tokens.length; i += 500) {
       const chunk = tokens.slice(i, i + 500);
