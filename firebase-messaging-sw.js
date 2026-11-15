@@ -15,11 +15,15 @@ firebase.messaging();
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  var url = (event.notification.data && (event.notification.data.FCM_MSG && event.notification.data.FCM_MSG.notification && event.notification.data.FCM_MSG.notification.click_action)) ||
-    (event.notification.data && event.notification.data.url) || self.registration.scope;
+  var d = event.notification.data || {}, m = d.FCM_MSG || {};
+  var url = (m.fcmOptions && m.fcmOptions.link) || (m.notification && m.notification.click_action) || d.url || self.registration.scope;
+  var hash = url.indexOf("#") !== -1 ? url.slice(url.indexOf("#")) : "";
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
     for (var i = 0; i < list.length; i++) {
-      if (list[i].url.indexOf(self.registration.scope) === 0 && "focus" in list[i]) return list[i].focus();
+      if (list[i].url.indexOf(self.registration.scope) === 0 && "focus" in list[i]) {
+        try { list[i].postMessage({ firebaseMessaging: { payload: { fcmOptions: { link: url } } } }); } catch (e) {}
+        return list[i].focus();
+      }
     }
     return self.clients.openWindow(url);
   }));

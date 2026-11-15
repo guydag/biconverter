@@ -49,7 +49,7 @@ async function main() {
             body: "דוח חדש עם " + f.d.rows + " רשומים" + (when ? " (עלה ב־" + when + ")" : ""),
             icon: SITE + "icon-192.png?v=3", badge: SITE + "icon-192.png?v=3", dir: "rtl", lang: "he"
           },
-          fcmOptions: { link: SITE }
+          fcmOptions: { link: SITE + "#r=" + encodeURIComponent(name) }
         }
       });
       const stale = [];
