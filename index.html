@@ -227,6 +227,8 @@ button.navlink { font: inherit; font-size: 15px; font-weight: 600; border: 0; cu
 .switch[aria-checked="true"]::after { transform: translateX(-22px); }
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .user-form { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding: 18px; }
+.users-search { margin: 12px 14px 4px; width: calc(100% - 28px); }
+.users-more { margin: 10px 14px 12px; }
 .user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .user-row:last-child { border-bottom: 0; }
 .user-row .who { display: flex; flex-direction: column; min-width: 0; }
@@ -546,7 +548,9 @@ footer .version { margin-top: 4px; }
         <h2 class="sec-title">משתמשים</h2>
         <section class="card table-card">
           <p class="note" id="usersStatus" hidden></p>
+          <input class="field users-search" id="usersSearch" type="search" placeholder="חיפוש משתמש" aria-label="חיפוש משתמש" autocomplete="off" hidden>
           <div id="usersList"></div>
+          <button class="btn ghost small users-more" id="usersMore" type="button" hidden></button>
         </section>
         <form class="card user-form" id="userForm" autocomplete="off">
           <strong>הוספת משתמש</strong>
@@ -595,7 +599,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 09:25";
+var VERSION = "v15.11 · 09:31";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1624,7 +1628,16 @@ function renderUsers() {
   var box = $("usersList"), st = $("usersStatus");
   box.textContent = ""; st.hidden = true;
   var me = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
-  (state.users || []).forEach(function (u) {
+  var USERS_SHOWN = 5;
+  var all = state.users || [], q = ($("usersSearch").value || "").trim().toLowerCase();
+  $("usersSearch").hidden = all.length <= USERS_SHOWN;
+  var list = q ? all.filter(function (u) { return (u.name || "").toLowerCase().indexOf(q) !== -1 || u.id.toLowerCase().indexOf(q) !== -1; }) : all;
+  var more = $("usersMore"), hidden = 0;
+  if (!q && !state.usersAll && list.length > USERS_SHOWN) { hidden = list.length - USERS_SHOWN; list = list.slice(0, USERS_SHOWN); }
+  more.hidden = !(hidden || (!q && state.usersAll && all.length > USERS_SHOWN));
+  more.textContent = hidden ? "הצגת עוד " + hidden : "הצגת פחות";
+  if (q && !list.length) { var none = document.createElement("p"); none.className = "note"; none.textContent = "לא נמצאו משתמשים."; box.appendChild(none); }
+  list.forEach(function (u) {
     var row = document.createElement("div"); row.className = "user-row";
     var who = document.createElement("div"); who.className = "who";
     var strong = document.createElement("strong"); strong.textContent = u.name || "(ללא שם)";
@@ -1647,6 +1660,8 @@ function renderUsers() {
     box.appendChild(row);
   });
 }
+$("usersSearch").addEventListener("input", renderUsers);
+$("usersMore").addEventListener("click", function () { state.usersAll = !state.usersAll; renderUsers(); });
 function editName(row, u) {
   row.textContent = "";
   var inp = document.createElement("input"); inp.className = "field inline"; inp.value = u.name; inp.setAttribute("aria-label", "שם");
