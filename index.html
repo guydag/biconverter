@@ -362,6 +362,8 @@ footer .version { margin-top: 4px; }
 .user-actions { display: flex; gap: 8px; flex-wrap: nowrap; }
 .share-card { gap: 14px; }
 .share-acts { display: flex; gap: 8px; flex: none; }
+.login-foot { text-align: center; margin-top: 10px; }
+.login-foot .version { display: inline-block; }
 .reg-link { text-align: center; margin-top: 14px; }
 .reg-link a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .pend-id { font-variant-numeric: tabular-nums; direction: ltr; }
@@ -466,6 +468,7 @@ footer .version { margin-top: 4px; }
         <button class="btn primary" id="loginBtn" type="submit">כניסה</button>
       </form>
       <p class="note reg-link">עדיין אין לך משתמש? <a href="register.html">הרשמה לאתר</a></p>
+      <footer class="login-foot"><span class="version" dir="ltr" data-version></span></footer>
     </div>
   </main>
   <main id="app" hidden>
@@ -649,7 +652,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:23";
+var VERSION = "v15.11 · 10:26";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
