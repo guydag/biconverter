@@ -371,6 +371,7 @@ footer .version { margin-top: 4px; }
 .pw-msg.err { color: var(--err); } .pw-msg.ok { color: var(--ok); }
 .share-card { gap: 14px; }
 .sec-title.grp { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .02em; margin: 8px 4px -6px; }
+.share-copy.share-go2[hidden] { display: none; }
 .share-copy.share-go2 { padding: 8px 12px; background: var(--accent); color: var(--accent-fg); }
 .share-link { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 6px; border: 1.5px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--bg) 60%, var(--surface)); }
 .share-url { flex: 1; min-width: 0; padding: 4px 10px; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
@@ -667,7 +668,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 11:02";
+var VERSION = "v15.11 · 11:05";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1680,6 +1681,7 @@ async function copyText(t) {
 function flashCopied() { var c = $("copySite"), t = $("copyTxt"); c.classList.add("done"); t.textContent = "הועתק"; clearTimeout(flashCopied.t); flashCopied.t = setTimeout(function () { c.classList.remove("done"); t.textContent = "העתקה"; }, 1800); }
 $("shareUrl").textContent = siteUrl("").replace(/^https?:\/\//, "").replace(/\/$/, "");
 $("copySite").addEventListener("click", async function () { if (await copyText(siteUrl(""))) flashCopied(); else shareMsg("ההעתקה לא הצליחה."); });
+try { if (!window.matchMedia("(pointer: coarse)").matches || !navigator.share) $("shareSite").hidden = true; } catch (e) {}
 $("shareSite").addEventListener("click", async function () {
   if (navigator.share) { try { await navigator.share({ title: "רשומי משואות", url: siteUrl("") }); } catch (e) {} }
   else if (await copyText(siteUrl(""))) flashCopied();
