@@ -41,7 +41,8 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
 @media (max-width: 440px) { .row { grid-template-columns: 1fr; } }
 .msg { margin-top:6px; font-size:13px; color: var(--err); min-height:0; }
 .msg:empty { display:none; }
-.roles { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; }
+.roles { display:flex; flex-wrap:wrap; gap:8px; }
+.roles label { flex: 1 1 calc(33.3% - 8px); padding: 0 12px; white-space: nowrap; }
 .roles input { position:absolute; opacity:0; pointer-events:none; }
 .roles label { display:flex; align-items:center; justify-content:center; gap:6px; min-height:50px; border:1.5px solid var(--line); border-radius:12px; font-weight:700; cursor:pointer; background: var(--bg); transition: all .15s; }
 .roles label::before { content:""; width:0; height:14px; transition: width .15s; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; }
@@ -97,8 +98,10 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
       <span class="l" style="display:block;font-weight:700;font-size:14.5px;margin-bottom:6px">תפקיד</span>
       <div class="roles" role="radiogroup" aria-label="תפקיד">
         <input type="radio" name="role" id="r1" value="מרכז"><label for="r1">מרכז</label>
-        <input type="radio" name="role" id="r2" value="ראשגד"><label for="r2">ראשגד</label>
-        <input type="radio" name="role" id="r3" value="ראשצ"><label for="r3">ראשצ</label>
+        <input type="radio" name="role" id="r2" value="ראשג״ד"><label for="r2">ראשג״ד</label>
+        <input type="radio" name="role" id="r3" value="ראש״צ"><label for="r3">ראש״צ</label>
+        <input type="radio" name="role" id="r4" value="מדריך קורס"><label for="r4">מדריך קורס</label>
+        <input type="radio" name="role" id="r5" value="בוגר"><label for="r5">בוגר</label>
       </div>
       <div class="msg" id="m-role"></div>
     </div>
