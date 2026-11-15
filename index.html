@@ -608,7 +608,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:46";
+var VERSION = "v15.11 · 02:49";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1623,7 +1623,7 @@ async function loadUsers() {
     var us = await db.collection("users").get();
     var as = await db.collection("admins").get();
     var admins = {}; as.forEach(function (d) { admins[d.id] = true; });
-    var list = []; us.forEach(function (d) { list.push({ id: d.id, name: (d.data() || {}).name || "", admin: !!admins[d.id] }); });
+    var list = []; us.forEach(function (d) { if (d.id === "_dictionary") return; list.push({ id: d.id, name: (d.data() || {}).name || "", admin: !!admins[d.id] }); });
     Object.keys(admins).forEach(function (id) { if (!list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
     list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
@@ -1767,7 +1767,7 @@ Array.prototype.forEach.call(document.querySelectorAll("[data-logout]"), functio
 var DICT_SEP = "=>";
 async function loadDict() {
   try {
-    var snap = await db.collection("meta").doc("dict").get();
+    var snap = await db.collection("users").doc("_dictionary").get();
     if (snap.exists && Array.isArray(snap.data().pairs)) {
       ALIASES = snap.data().pairs.map(function (p) { var i = String(p).indexOf(DICT_SEP); return [String(p).slice(0, i), String(p).slice(i + DICT_SEP.length)]; }).filter(function (a) { return a[0]; });
     }
@@ -1815,7 +1815,7 @@ async function openDict() {
     var clean = pairs.map(function (p) { return [norm(p[0]), norm(p[1])]; }).filter(function (p) { return p[0] && p[1]; });
     save.disabled = true;
     try {
-      await db.collection("meta").doc("dict").set({ pairs: clean.map(function (p) { return p[0] + DICT_SEP + p[1]; }) });
+      await db.collection("users").doc("_dictionary").set({ pairs: clean.map(function (p) { return p[0] + DICT_SEP + p[1]; }) });
       ALIASES = clean; pairs = clean.map(function (p) { return [p[0], p[1]]; }); draw();
       msg.textContent = "נשמר."; msg.hidden = false;
     } catch (e) { msg.textContent = e && e.code === "permission-denied" ? "אין הרשאת כתיבה בבסיס הנתונים." : "השמירה לא הצליחה."; msg.hidden = false; }
