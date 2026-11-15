@@ -980,6 +980,19 @@ async function buildBlob(rowsIn, withSummary) {
   return new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+/* Lightweight usage statistics: one small counter document per person per day (who, what, when), no content. */
+function logUsage(ev, report) {
+  try {
+    var u = auth && auth.currentUser; if (!u || !db) return;
+    var email = (u.email || "").toLowerCase(), day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jerusalem" });
+    var inc = firebase.firestore.FieldValue.increment(1), data = { email: email, day: day, counts: {}, last: firebase.firestore.FieldValue.serverTimestamp() };
+    data.counts[ev] = inc;
+    if (report) { data.reports = {}; data.reports[report] = {}; data.reports[report][ev] = inc; }
+    var standalone = false; try { standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) {}
+    data.device = isPhone() ? "phone" : "desktop"; data.app = standalone; data.version = VERSION;
+    db.collection("usage").doc(email + "_" + day).set(data, { merge: true }).catch(function () {});
+  } catch (e) {}
+}
 async function saveBlob(blob, name) {
   var dl = null;
   try { dl = window.claude ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
@@ -1010,6 +1023,7 @@ function base64ToBlob(b64) {
 function personKey(fn, ln, gr) { return [norm(fn), norm(ln), norm(gr)].join("|"); }
 async function saveLatest(blob, name) {
   var key = (state.keywords || "ללא מפעל").replace(/\//g, "-");
+  logUsage("upload", key);
   var data = await blobToBase64(blob);
   if (data.length > 900000) throw new Error("too-large");
   var ref = db.collection("factories").doc(key);
@@ -1105,6 +1119,7 @@ function canShareHere() {
   } catch (e) { return false; }
 }
 async function shareSaved(d) {
+  logUsage("share", d && d.name);
   var blob = base64ToBlob(d.data);
   try {
     var file = new File([blob], d.fileName, { type: blob.type });
@@ -1130,7 +1145,7 @@ async function getFile(d, over) {
       if (e && e.name === "AbortError") return;
     }
   }
-  try { await saveBlob(useBlob || base64ToBlob(d.data), useName); } catch (e) {}
+  try { await saveBlob(useBlob || base64ToBlob(d.data), useName); logUsage("download", d.name); } catch (e) {}
 }
 var DEL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
 function tsMs(t) { return t && t.toMillis ? t.toMillis() : 0; }
@@ -1291,6 +1306,7 @@ var DL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" strok
 var EYE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 var previewReturn = null;
 function openPreview(d) {
+  logUsage("preview", d && d.name);
   closePreview(true);
   var rows;
   try {
@@ -2117,6 +2133,7 @@ auth.onAuthStateChanged(async function (user) {
   $("uploadCard").hidden = true;
   if (!user) { state.seenFor = null; installInit(); return; }
   loadSaved();
+  logUsage("open");
   showGreeting(user);
   installInit();
   maybeWelcome();
