@@ -552,9 +552,15 @@ footer .version { margin-top: 4px; }
           <div id="usersList"></div>
           <button class="btn ghost small users-more" id="usersMore" type="button" hidden></button>
         </section>
+        <section class="card" id="pendingSection" hidden>
+          <strong>ממתינים לאישור</strong>
+          <div id="pendingList"></div>
+        </section>
         <form class="card user-form" id="userForm" autocomplete="off">
           <strong>הוספת משתמש</strong>
-          <input class="field" id="newUser" type="text" dir="ltr" placeholder="שם משתמש באנגלית" autocapitalize="none" spellcheck="false" required>
+          <input class="field" id="newFirst" type="text" dir="ltr" placeholder="שם פרטי באנגלית" autocapitalize="none" spellcheck="false" required>
+          <input class="field" id="newLast" type="text" dir="ltr" placeholder="שם משפחה באנגלית" autocapitalize="none" spellcheck="false" required>
+          <input class="field" id="newUser" type="text" dir="ltr" placeholder="שם משתמש (אוטומטי)" readonly tabindex="-1">
           <input class="field" id="newName" type="text" placeholder="שם פרטי בעברית" required>
           <label class="check" for="newAdmin"><input type="checkbox" id="newAdmin"> מנהל (יכול להעלות ולמחוק קבצים)</label>
           <button class="btn primary" type="submit">הוספה</button>
@@ -599,7 +605,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 09:47";
+var VERSION = "v15.11 · 09:49";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1637,7 +1643,38 @@ async function loadUsers() {
     list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
     renderUsers();
+    loadPending();
   } catch (e) { st.textContent = "לא הצלחנו לטעון את המשתמשים."; st.hidden = false; }
+}
+var pendingFor = null;
+async function loadPending() {
+  var sec = $("pendingSection"), box = $("pendingList");
+  try {
+    var snap = await db.collection("pending").get();
+    var items = []; snap.forEach(function (d) { items.push({ id: d.id, d: d.data() || {} }); });
+    box.textContent = ""; sec.hidden = !items.length;
+    items.forEach(function (it) {
+      var d = it.d, row = document.createElement("div"); row.className = "user-row";
+      var who = document.createElement("div"); who.className = "who";
+      var st = document.createElement("strong"); st.textContent = d.fullName || "(ללא שם)";
+      var sm = document.createElement("small"); sm.dir = "ltr"; sm.style.textAlign = "right";
+      sm.textContent = [d.first, d.last].filter(Boolean).join(" ") + (d.role ? " · " + d.role : "");
+      who.appendChild(st); who.appendChild(sm); row.appendChild(who);
+      var acts = document.createElement("div"); acts.className = "acts";
+      acts.appendChild(mkBtn("אישור", "primary small", function () {
+        $("newFirst").value = d.first || ""; $("newLast").value = d.last || "";
+        $("newName").value = (d.fullName || "").trim().split(/\s+/)[0] || "";
+        syncNewUser(); pendingFor = it.id;
+        $("userForm").scrollIntoView({ behavior: "smooth", block: "center" });
+        $("userForm").querySelector("button[type=submit]").focus();
+      }));
+      acts.appendChild(mkBtn("דחייה", "ghost small", async function () {
+        try { await db.collection("pending").doc(it.id).delete(); } catch (e) {}
+        loadPending();
+      }));
+      row.appendChild(acts); box.appendChild(row);
+    });
+  } catch (e) { sec.hidden = true; }
 }
 function mkBtn(label, cls, fn) {
   var b = document.createElement("button"); b.type = "button"; b.className = "btn small " + cls; b.textContent = label; b.addEventListener("click", fn); return b;
@@ -1677,6 +1714,11 @@ function renderUsers() {
   });
 }
 $("usersSearch").addEventListener("input", renderUsers);
+function syncNewUser() {
+  var f = $("newFirst").value.toLowerCase().replace(/[^a-z0-9]/g, ""), l = $("newLast").value.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 2);
+  $("newUser").value = f ? f + l : "";
+}
+$("newFirst").addEventListener("input", syncNewUser); $("newLast").addEventListener("input", syncNewUser);
 $("usersMore").addEventListener("click", function () { state.usersAll = !state.usersAll; renderUsers(); });
 function editName(row, u) {
   row.textContent = "";
@@ -1717,6 +1759,7 @@ $("userForm").addEventListener("submit", async function (ev) {
     if ($("newAdmin").checked) await db.collection("admins").doc(id).set({ role: "admin" });
     userMsg("נוסף. כדי שיוכל להיכנס, יוצרים ב-%s משתמש עם האימייל %s וסיסמה.", ["Firebase › Authentication › Add user", id]);
     $("userForm").reset();
+    if (pendingFor) { try { await db.collection("pending").doc(pendingFor).delete(); } catch (e) {} pendingFor = null; }
     loadUsers();
   } catch (e) { userMsg("ההוספה לא הצליחה."); }
 });
