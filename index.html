@@ -445,6 +445,9 @@ footer .version { margin-top: 4px; }
 .users-summary { display: flex; gap: 8px; margin: 4px 2px 6px; font-size: 13px; color: var(--muted); }
 .users-summary b { color: var(--fg); }
 .pg-btn { width: 44px; height: 44px; }
+.pf-top { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+.pf-who { min-width: 0; display: flex; flex-direction: column; }
+.pf-who strong { font-size: 16px; font-weight: 800; overflow-wrap: anywhere; }
 .pend-ok { display: flex; margin-top: 8px; }
 .pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
@@ -623,6 +626,12 @@ footer .version { margin-top: 4px; }
       </header>
       <div class="settings-body" id="settingsBody">
 
+      <h2 class="sec-title grp">הפרופיל שלי</h2>
+      <section class="card profile-card" id="profileCard" hidden>
+        <div class="pf-top"><div class="u-av" id="pfAv" aria-hidden="true"></div>
+          <div class="pf-who"><strong id="pfName"></strong><div class="u-meta" id="pfMeta"></div></div>
+          <button class="btn ghost small" id="pfEdit" type="button">עריכה</button></div>
+      </section>
       <h2 class="sec-title grp">העדפות</h2>
       <section class="card setting-card">
         <div class="setting-text"><strong>מראה</strong></div>
@@ -1106,6 +1115,29 @@ async function download() {
   }
 }
 
+function initialsOf(full) { var p = String(full || "").trim().split(/\s+/); return ((p[0] || "").charAt(0) + (p.length > 1 ? p[1].charAt(0) : "")).toUpperCase(); }
+function renderProfile() {
+  var card = $("profileCard"), p = state.profile, u = auth && auth.currentUser;
+  if (!u || !p) { card.hidden = true; return; }
+  var id = u.email.toLowerCase();
+  $("pfAv").textContent = initialsOf(p.fullName || p.name || shortId(id));
+  $("pfName").textContent = p.fullName || p.name || "(ללא שם)";
+  var meta = $("pfMeta"); meta.textContent = "";
+  var bits = [];
+  if (p.role) bits.push(["role", p.role]);
+  if (p.idNumber) bits.push(["id", p.idNumber]);
+  bits.push(["un", shortId(id)]);
+  bits.forEach(function (bt, i) {
+    if (i) { var d = document.createElement("i"); d.className = "u-dot"; meta.appendChild(d); }
+    var e = document.createElement(bt[0] === "role" ? "span" : "bdi"); e.className = "u-" + bt[0]; e.textContent = bt[1]; meta.appendChild(e);
+  });
+  $("pfEdit").onclick = function () { editUser({ id: id, name: p.name || "", fullName: p.fullName || "", idNumber: p.idNumber || "", role: p.role || "" }, { self: true }); };
+  card.hidden = false;
+}
+function setGreeting() {
+  var p = state.profile, name = p && (p.name || p.fullName) ? String(p.name || p.fullName).trim() : "", first = name ? name.split(/\s+/)[0] : "";
+  $("hello").textContent = first ? "שלום, " + first : "שלום";
+}
 async function showGreeting(user) {
   var el = $("hello");
   state.profile = null;
@@ -1123,6 +1155,7 @@ async function showGreeting(user) {
   var first = name ? name.split(/\s+/)[0] : "";
   el.textContent = first ? "שלום, " + first : "שלום";
   el.hidden = false;
+  renderProfile();
 }
 async function checkAdmin(user) {
   try {
@@ -2064,13 +2097,14 @@ function validIsraeliId(v) {
   for (var i = 0; i < 9; i++) { var n = Number(v[i]) * (i % 2 ? 2 : 1); sum += n > 9 ? n - 9 : n; }
   return sum % 10 === 0;
 }
-function editUser(u) {
+function editUser(u, opts) {
+  opts = opts || {};
   closePreview(true);
   var ov = document.createElement("div"); ov.className = "pv-overlay"; ov.id = "pvOverlay";
-  var box = document.createElement("div"); box.className = "pv-box"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", "עריכת משתמש");
+  var box = document.createElement("div"); box.className = "pv-box"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", opts.self ? "הפרופיל שלי" : "עריכת משתמש");
   var head = document.createElement("div"); head.className = "pv-head";
   var tt = document.createElement("div"); tt.className = "pv-title";
-  var h = document.createElement("strong"); h.textContent = "עריכת משתמש"; tt.appendChild(h);
+  var h = document.createElement("strong"); h.textContent = opts.self ? "הפרופיל שלי" : "עריכת משתמש"; tt.appendChild(h);
   var sub = document.createElement("span"); sub.dir = "ltr"; sub.textContent = shortId(u.id); tt.appendChild(sub);
   var x = document.createElement("button"); x.type = "button"; x.className = "close-x pv-x"; x.setAttribute("aria-label", "סגירה"); x.title = "סגירה";
   x.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -2114,7 +2148,9 @@ function editUser(u) {
     save.disabled = true;
     try {
       await db.collection("users").doc(u.id).set({ name: name.split(" ")[0], fullName: name, idNumber: id, role: role });
-      closePreview(); loadUsers();
+      var meId = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
+      if (u.id === meId) { state.profile = { name: name.split(" ")[0], fullName: name, idNumber: id, role: role }; renderProfile(); setGreeting(); }
+      closePreview(); if (state.isAdmin) loadUsers();
     } catch (er) { err.textContent = "השמירה לא הצליחה. נסו שוב."; save.disabled = false; }
   });
   box.appendChild(head); box.appendChild(body); ov.appendChild(box);
@@ -2216,7 +2252,7 @@ auth.onAuthStateChanged(async function (user) {
   $("usersSection").hidden = true;
   $("adminBar").hidden = true;
   $("uploadCard").hidden = true;
-  if (!user) { state.seenFor = null; installInit(); return; }
+  if (!user) { state.seenFor = null; state.profile = null; $("profileCard").hidden = true; installInit(); return; }
   loadSaved();
   logUsage("open");
   showGreeting(user);
