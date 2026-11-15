@@ -2,8 +2,8 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>body{margin:0}img{max-width:100%}.pv-overlay:not(.in){pointer-events:none}
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>html{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%}body{margin:0}img{max-width:100%}.pv-overlay:not(.in){pointer-events:none}
 #newUser:placeholder-shown{direction:rtl;text-align:right}
 @media (max-height: 640px) {
   #viewMain:has(#uploadCard:not([hidden])) #listTitle, #viewMain:has(#uploadCard:not([hidden])) #savedCard, #viewMain:has(#uploadCard:not([hidden])) #searchWrap { display: none; }
@@ -448,6 +448,7 @@ footer .version { margin-top: 4px; }
 @media (hover: hover) { .drop:hover .icon { transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 </style>
+<script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});</script>
 </head>
 <body>
 
@@ -674,7 +675,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:40";
+var VERSION = "v15.11 · 10:41";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
