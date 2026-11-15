@@ -360,6 +360,14 @@ footer .version { margin-top: 4px; }
 .ibtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (hover: hover) { .ibtn:hover { border-color: var(--accent); color: var(--accent); } .ibtn.ok:hover { color: var(--accent-fg); filter: brightness(1.08); } .ibtn.del:hover { border-color: var(--err); color: var(--err); } }
 .user-actions { display: flex; gap: 8px; flex-wrap: nowrap; }
+.pw-card summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pw-card summary::-webkit-details-marker { display: none; }
+.pw-card summary::after { content: ""; width: 10px; height: 10px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; flex: none; margin-inline-start: 8px; }
+.pw-card details[open] summary::after { transform: rotate(-135deg); }
+.pw-form { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; animation: fade .25s ease both; }
+.pw-form .btn { width: 100%; max-width: none; margin: 0; }
+.pw-msg { margin: 0; text-align: center; }
+.pw-msg.err { color: var(--err); } .pw-msg.ok { color: var(--ok); }
 .share-card { gap: 14px; }
 .share-acts { display: flex; gap: 8px; flex: none; }
 .login-foot { text-align: center; margin-top: 10px; }
@@ -571,6 +579,19 @@ footer .version { margin-top: 4px; }
         <p class="note" id="shareMsg" hidden></p>
       </section>
 
+      <section class="card pw-card" id="pwCard">
+        <details id="pwDetails">
+          <summary><span class="setting-text"><strong>שינוי סיסמה</strong><span>החלפת הסיסמה שלכם לסיסמה חדשה.</span></span></summary>
+          <form class="pw-form" id="pwForm" autocomplete="off" novalidate>
+            <input class="field" id="pwOld" type="password" dir="ltr" placeholder="סיסמה נוכחית" autocomplete="current-password">
+            <input class="field" id="pwNew" type="password" dir="ltr" placeholder="סיסמה חדשה (לפחות 6 תווים)" autocomplete="new-password">
+            <input class="field" id="pwNew2" type="password" dir="ltr" placeholder="הקלידו שוב את הסיסמה החדשה" autocomplete="new-password">
+            <p class="note pw-msg" id="pwMsg" hidden></p>
+            <button class="btn primary" id="pwBtn" type="submit">שמירת סיסמה</button>
+          </form>
+        </details>
+      </section>
+
       <section class="card install-card" id="installCard" hidden>
         <div class="setting-row">
           <div class="setting-text"><strong>התקנה כאפליקציה</strong><span>פתיחה במגע אחד ממסך הבית, בלי דפדפן.</span></div>
@@ -652,7 +673,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:26";
+var VERSION = "v15.11 · 10:31";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1671,6 +1692,29 @@ function wireShare(shareId, copyId, url, title) {
 }
 wireShare("shareSite", "copySite", function () { return siteUrl(""); }, "רשומי משואות");
 wireShare("shareReg", "copyReg", function () { return siteUrl("register.html"); }, "הרשמה לאתר רשומי משואות");
+
+/* Change own password: re-enter the current one, then the new one twice. */
+function pwMsg(t, kind) { var m = $("pwMsg"); m.textContent = t; m.className = "note pw-msg " + (kind || ""); m.hidden = !t; }
+$("pwForm").addEventListener("submit", async function (ev) {
+  ev.preventDefault();
+  var old = $("pwOld").value, n1 = $("pwNew").value, n2 = $("pwNew2").value;
+  if (!old) { pwMsg("יש להקליד את הסיסמה הנוכחית.", "err"); return; }
+  if (n1.length < 6) { pwMsg("הסיסמה החדשה חייבת להכיל לפחות 6 תווים.", "err"); return; }
+  if (n1 !== n2) { pwMsg("שתי הסיסמאות החדשות אינן זהות.", "err"); return; }
+  if (n1 === old) { pwMsg("הסיסמה החדשה זהה לנוכחית.", "err"); return; }
+  var u = auth && auth.currentUser; if (!u) return;
+  var b = $("pwBtn"); b.disabled = true; pwMsg("");
+  try {
+    await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, old));
+    await u.updatePassword(n1);
+    $("pwForm").reset(); pwMsg("הסיסמה עודכנה.", "ok");
+    setTimeout(function () { var d = $("pwDetails"); if (d) d.open = false; pwMsg(""); }, 2200);
+  } catch (e) {
+    var c = e && e.code || "";
+    pwMsg(c === "auth/wrong-password" || c === "auth/invalid-credential" || c === "auth/invalid-login-credentials" ? "הסיסמה הנוכחית שגויה." : c === "auth/too-many-requests" ? "יותר מדי ניסיונות. נסו שוב בעוד כמה דקות." : c === "auth/weak-password" ? "הסיסמה חלשה מדי." : "עדכון הסיסמה לא הצליח.", "err");
+  }
+  b.disabled = false;
+});
 window.addEventListener("hashchange", route);
 route();
 
