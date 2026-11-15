@@ -351,6 +351,11 @@ footer .version { margin-top: 4px; }
 .saved-info span { color: var(--muted); font-size: 13px; }
 .check { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--muted); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.ibtn { width: 40px; height: 40px; padding: 0; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; transition: background .15s, color .15s, border-color .15s; }
+.ibtn.ok { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.ibtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) { .ibtn:hover { border-color: var(--accent); color: var(--accent); } .ibtn.ok:hover { color: var(--accent-fg); filter: brightness(1.08); } .ibtn.del:hover { border-color: var(--err); color: var(--err); } }
+.user-actions { display: flex; gap: 8px; flex-wrap: nowrap; }
 #pendingSection { padding-bottom: 6px; }
 .pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
@@ -616,7 +621,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 10:01";
+var VERSION = "v15.11 · 10:04";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1674,20 +1679,33 @@ async function loadPending() {
       if (en) { var eb = document.createElement("bdi"); eb.textContent = en; sm.appendChild(eb); }
       who.appendChild(st); who.appendChild(sm); row.appendChild(who);
       var acts = document.createElement("div"); acts.className = "acts";
-      acts.appendChild(mkBtn("אישור", "primary small", function () {
+      acts.appendChild(mkIcon("check", "אישור", "ok", function () {
         $("newFirst").value = d.first || ""; $("newLast").value = d.last || "";
         $("newName").value = (d.fullName || "").trim().split(/\s+/)[0] || "";
         syncNewUser(); pendingFor = it.id;
         $("userForm").scrollIntoView({ behavior: "smooth", block: "center" });
         $("userForm").querySelector("button[type=submit]").focus();
       }));
-      acts.appendChild(mkBtn("דחייה", "ghost small", async function () {
+      acts.appendChild(mkIcon("x", "דחייה", "del", async function () {
         try { await db.collection("pending").doc(it.id).delete(); } catch (e) {}
         loadPending();
       }));
       row.appendChild(acts); box.appendChild(row);
     });
   } catch (e) { sec.hidden = true; }
+}
+var ICONS = {
+  shield: '<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+  shieldoff: '<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>'
+};
+function mkIcon(name, label, cls, fn) {
+  var b = document.createElement("button"); b.type = "button"; b.className = "ibtn " + (cls || ""); b.title = label; b.setAttribute("aria-label", label);
+  b.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
+  b.addEventListener("click", fn); return b;
 }
 function mkBtn(label, cls, fn) {
   var b = document.createElement("button"); b.type = "button"; b.className = "btn small " + cls; b.textContent = label; b.addEventListener("click", fn); return b;
@@ -1713,15 +1731,15 @@ function renderUsers() {
     who.appendChild(nr); who.appendChild(sp);
     var acts = document.createElement("div"); acts.className = "user-actions";
     var self = u.id === me;
-    if (!self) acts.appendChild(mkBtn(u.admin ? "ביטול ניהול" : "הפיכה למנהל", "ghost", async function () {
+    if (!self) acts.appendChild(mkIcon(u.admin ? "shieldoff" : "shield", u.admin ? "ביטול ניהול" : "הפיכה למנהל", "", async function () {
       try {
         if (u.admin) await db.collection("admins").doc(u.id).delete();
         else await db.collection("admins").doc(u.id).set({ role: "admin" });
         loadUsers();
       } catch (e) { userMsg("העדכון לא הצליח."); }
     }));
-    acts.appendChild(mkBtn("שינוי שם", "ghost", function () { editName(row, u); }));
-    if (!self) acts.appendChild(mkBtn("הסרה", "ghost", function () { askRemove(row, u); }));
+    acts.appendChild(mkIcon("pen", "שינוי שם", "", function () { editName(row, u); }));
+    if (!self) acts.appendChild(mkIcon("trash", "הסרה", "del", function () { askRemove(row, u); }));
     row.appendChild(who); row.appendChild(acts);
     box.appendChild(row);
   });
