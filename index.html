@@ -112,7 +112,7 @@ footer { margin-top: auto; }
   .sec-title { margin: 0; }
 }
 @media (max-height: 700px) { .lead { display: none; } footer { display: none; } }
-#usersList { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+#usersList { max-height: 40vh; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 @media (max-height: 950px) {
   .result { padding: 14px 12px 12px; gap: 8px; }
   .result .icon { width: 44px; height: 44px; }
@@ -127,7 +127,7 @@ footer { margin-top: auto; }
 @media (max-height: 520px) { .result { padding: 8px 12px; gap: 6px; } .result .icon { display: none; } .result h2 { font-size: 17px; margin: 0; } .result .btn { padding-block: 7px; } }
 #viewSettings { flex: 1 1 auto; min-height: 0; }
 .settings-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: inherit; margin: 0 -8px; padding: 4px 8px 8px; }
-#usersList { max-height: none; }
+#usersList { max-height: 40vh; }
 /* While a file is being uploaded the page header shrinks so nothing spills past the screen. */
 #viewMain:has(#uploadCard:not([hidden])) .lead, #viewMain:has(#uploadCard:not([hidden])) footer { display: none; }
 #viewMain:has(#uploadCard:not([hidden])) #savedCard { min-height: 0; }
@@ -599,7 +599,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 09:45";
+var VERSION = "v15.11 · 09:47";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1651,9 +1651,7 @@ function renderUsers() {
   $("usersSearch").hidden = all.length <= USERS_SHOWN;
   var list = q ? all.filter(function (u) { return (u.name || "").toLowerCase().indexOf(q) !== -1 || u.id.toLowerCase().indexOf(q) !== -1; }) : all;
   var more = $("usersMore"), hidden = 0;
-  if (!q && !state.usersAll && list.length > USERS_SHOWN) { hidden = list.length - USERS_SHOWN; list = list.slice(0, USERS_SHOWN); }
-  more.hidden = !(hidden || (!q && state.usersAll && all.length > USERS_SHOWN));
-  more.textContent = hidden ? "הצגת עוד " + hidden : "הצגת פחות";
+  more.hidden = true;
   if (q && !list.length) { var none = document.createElement("p"); none.className = "note"; none.textContent = "לא נמצאו משתמשים."; box.appendChild(none); }
   list.forEach(function (u) {
     var row = document.createElement("div"); row.className = "user-row";
