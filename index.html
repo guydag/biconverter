@@ -351,6 +351,17 @@ footer .version { margin-top: 4px; }
 .saved-info span { color: var(--muted); font-size: 13px; }
 .check { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--muted); cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+#pendingSection { padding-bottom: 6px; }
+.pend-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.pend-count { min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.pend-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.pend-row .who { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pend-row .who strong { font-size: 16px; }
+.pend-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted, #7a6a5e); font-size: 13px; }
+.pend-sub bdi { direction: ltr; }
+.pend-role { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 600; font-size: 12px; }
+.pend-row .acts { display: flex; gap: 8px; flex: none; }
+.pend-row .btn.small { padding: 7px 16px; font-size: 14px; border-radius: 10px; }
 .btn.small { width: auto; padding: 8px 18px; font-size: 15px; flex: none; }
 #savedStatus { padding: 16px; text-align: center; }
 .veil { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--veil); pointer-events: none; }
@@ -553,7 +564,7 @@ footer .version { margin-top: 4px; }
           <button class="btn ghost small users-more" id="usersMore" type="button" hidden></button>
         </section>
         <section class="card" id="pendingSection" hidden>
-          <strong>ממתינים לאישור</strong>
+          <div class="pend-head"><strong>ממתינים לאישור</strong><span class="pend-count" id="pendCount"></span></div>
           <div id="pendingList"></div>
         </section>
         <form class="card user-form" id="userForm" autocomplete="off">
@@ -605,7 +616,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 09:49";
+var VERSION = "v15.11 · 10:01";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1652,13 +1663,15 @@ async function loadPending() {
   try {
     var snap = await db.collection("pending").get();
     var items = []; snap.forEach(function (d) { items.push({ id: d.id, d: d.data() || {} }); });
-    box.textContent = ""; sec.hidden = !items.length;
+    box.textContent = ""; sec.hidden = !items.length; $("pendCount").textContent = items.length;
     items.forEach(function (it) {
-      var d = it.d, row = document.createElement("div"); row.className = "user-row";
+      var d = it.d, row = document.createElement("div"); row.className = "pend-row";
       var who = document.createElement("div"); who.className = "who";
       var st = document.createElement("strong"); st.textContent = d.fullName || "(ללא שם)";
-      var sm = document.createElement("small"); sm.dir = "ltr"; sm.style.textAlign = "right";
-      sm.textContent = [d.first, d.last].filter(Boolean).join(" ") + (d.role ? " · " + d.role : "");
+      var sm = document.createElement("div"); sm.className = "pend-sub";
+      var en = [d.first, d.last].filter(Boolean).join(" ");
+      if (d.role) { var rl = document.createElement("span"); rl.className = "pend-role"; rl.textContent = d.role; sm.appendChild(rl); }
+      if (en) { var eb = document.createElement("bdi"); eb.textContent = en; sm.appendChild(eb); }
       who.appendChild(st); who.appendChild(sm); row.appendChild(who);
       var acts = document.createElement("div"); acts.className = "acts";
       acts.appendChild(mkBtn("אישור", "primary small", function () {
