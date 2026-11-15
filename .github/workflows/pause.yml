@@ -1,0 +1,25 @@
+name: Pause accounts by role
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "pause | resume | list"
+        default: "list"
+      role:
+        description: "Role"
+        default: "מדריך קורס"
+permissions:
+  contents: read
+jobs:
+  pause:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --prefix scripts --no-audit --no-fund
+      - run: node scripts/pause.js "${{ github.event.inputs.action }}" "${{ github.event.inputs.role }}"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
