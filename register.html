@@ -129,6 +129,19 @@ function validId(v) {
 }
 function fail(id, text) { $("m-" + id).textContent = text; var el = $(id); if (el) el.setAttribute("aria-invalid", "true"); return false; }
 function clear() { Array.prototype.forEach.call(document.querySelectorAll(".msg"), function (m) { m.textContent = ""; }); Array.prototype.forEach.call(document.querySelectorAll(".f"), function (f) { f.removeAttribute("aria-invalid"); }); $("err").hidden = true; }
+function onlyChars(id, re, text) {
+  var el = $(id);
+  el.addEventListener("input", function () {
+    var v = el.value, c = v.replace(re, "");
+    if (c !== v) { el.value = c; $("m-" + id).textContent = text; el.removeAttribute("aria-invalid"); }
+    else if ($("m-" + id).textContent === text) $("m-" + id).textContent = "";
+  });
+}
+onlyChars("full", /[^\u0590-\u05FF \-'"\u05F3\u05F4]/g, "אפשר להקליד כאן באותיות בעברית בלבד.");
+onlyChars("first", /[^A-Za-z '\-]/g, "אפשר להקליד כאן באותיות באנגלית בלבד.");
+onlyChars("last", /[^A-Za-z '\-]/g, "אפשר להקליד כאן באותיות באנגלית בלבד.");
+function cap(id) { $(id).addEventListener("blur", function () { this.value = this.value.trim().replace(/\s+/g, " ").replace(/(^|[ \-'])([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); }); }); }
+cap("first"); cap("last");
 $("idn").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 9); });
 $("f").addEventListener("submit", async function (ev) {
   ev.preventDefault(); clear();
@@ -136,8 +149,8 @@ $("f").addEventListener("submit", async function (ev) {
   var rb = document.querySelector('input[name=role]:checked'), ok = true;
   if (!validId(idn)) ok = fail("idn", "תעודת הזהות אינה תקינה.") && ok;
   if (full.split(" ").length < 2 || !/[֐-׿]/.test(full)) ok = fail("full", "נא לכתוב שם פרטי ושם משפחה בעברית.") && ok;
-  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(first)) ok = fail("first", "נא לכתוב באותיות באנגלית.") && ok;
-  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(last)) ok = fail("last", "נא לכתוב באותיות באנגלית.") && ok;
+  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(first) || first.replace(/[^A-Za-z]/g, "").length < 2) ok = fail("first", "נא לכתוב באותיות באנגלית.") && ok;
+  if (!/^[A-Za-z][A-Za-z '\-]*$/.test(last) || last.replace(/[^A-Za-z]/g, "").length < 2) ok = fail("last", "נא לכתוב באותיות באנגלית.") && ok;
   if (!rb) { $("m-role").textContent = "נא לבחור תפקיד."; ok = false; }
   if (!ok) return;
   var btn = $("go"); btn.disabled = true; btn.textContent = "שולח…";
