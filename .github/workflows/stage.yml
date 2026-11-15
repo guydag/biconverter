@@ -1,0 +1,34 @@
+name: Update test site
+on:
+  push:
+    branches: [next]
+concurrency:
+  group: stage
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: next
+          path: next
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - name: Copy the work in progress to /test/
+        run: |
+          rm -rf main/test && mkdir main/test
+          cd next
+          cp index.html register.html firebase-messaging-sw.js manifest.json *.png ../main/test/
+          cd ../main
+          git config user.name "test-site-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add test
+          git diff --cached --quiet && echo "No change" && exit 0
+          git commit -m "Update test site"
+          git push origin main

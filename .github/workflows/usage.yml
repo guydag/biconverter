@@ -1,0 +1,22 @@
+name: Usage report
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days back"
+        default: "30"
+permissions:
+  contents: read
+jobs:
+  usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --prefix scripts --no-audit --no-fund
+      - run: node scripts/usage.js "${{ github.event.inputs.days }}"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
