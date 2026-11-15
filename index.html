@@ -259,8 +259,8 @@ footer .version { margin-top: 4px; }
 .saved.openable { cursor: pointer; transition: background .15s; }
 @media (hover: hover) { .saved.openable:hover { background: var(--accent-soft); } }
 .saved.openable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.share-btn.dl-btn { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-@media (hover: hover) { .share-btn.dl-btn:hover { filter: brightness(1.08); background: var(--accent); } }
+.share-btn.pv-btn { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+@media (hover: hover) { .share-btn.pv-btn:hover { filter: brightness(1.08); background: var(--accent); } }
 @media (max-width: 420px) {
   .saved { gap: 8px; padding-inline: 12px; }
   .saved-actions { gap: 5px; }
@@ -616,7 +616,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:20";
+var VERSION = "v15.11 · 02:23";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1068,7 +1068,7 @@ function renderSaved() {
       getFile(d);
     });
     var acts = document.createElement("div"); acts.className = "saved-actions";
-    var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
+    var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn pv-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
     pv.innerHTML = EYE_ICON;
     pv.addEventListener("click", function () { openPreview(d); });
     acts.appendChild(b);
