@@ -616,7 +616,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v15.11 · 02:23";
+var VERSION = "v15.11 · 02:26";
 /* Phones keep an old copy of the page for a while: when a newer version is published, offer a one-tap refresh. */
 (function () {
   var shown = false;
@@ -1071,13 +1071,13 @@ function renderSaved() {
     var pv = document.createElement("button"); pv.type = "button"; pv.className = "share-btn pv-btn"; pv.title = "תצוגה מקדימה"; pv.setAttribute("aria-label", "תצוגה מקדימה של " + d.name);
     pv.innerHTML = EYE_ICON;
     pv.addEventListener("click", function () { openPreview(d); });
-    acts.appendChild(b);
     if (state.isAdmin) {
       var del = document.createElement("button"); del.type = "button"; del.className = "del-btn"; del.title = "מחיקה"; del.setAttribute("aria-label", "מחיקת " + d.name);
       del.innerHTML = DEL_ICON;
       del.addEventListener("click", function () { askDelete(row, x); });
       acts.appendChild(del);
     }
+    acts.appendChild(b);
     acts.appendChild(pv);
     row.appendChild(info); row.appendChild(acts);
     box.appendChild(row);
