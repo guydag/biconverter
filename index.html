@@ -730,7 +730,15 @@ var VERSION = "v1.2";
     if (pull >= READY && !busy) {
       busy = true; el.classList.add("spin"); el.classList.remove("ready"); ring.style.strokeDashoffset = "";
       el.style.opacity = 1; el.style.transform = "translateY(" + (READY * 0.85 - 70 + 8) + "px) scale(1)";
-      setTimeout(function () { location.replace(location.pathname + "?r=" + Date.now() + location.hash); }, 450);
+      /* Refresh in place (no full reload, so no splash screen): reload the data and look for a newer version. */
+      var jobs = [new Promise(function (r) { setTimeout(r, 800); })];
+      try {
+        if (window.softRefresh) jobs.push(window.softRefresh());
+        if (window.checkForUpdate) jobs.push(window.checkForUpdate());
+      } catch (e) {}
+      Promise.all(jobs.map(function (j) { return Promise.resolve(j).catch(function () {}); })).then(function () {
+        busy = false; el.classList.remove("spin"); show(0);
+      });
     } else { show(0); }
     pull = 0;
   }
@@ -748,12 +756,13 @@ var VERSION = "v1.2";
     b.appendChild(t); b.appendChild(r); document.body.appendChild(b);
   }
   function check() {
-    if (shown || !window.fetch) return;
-    fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (h) {
+    if (shown || !window.fetch) return Promise.resolve();
+    return fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (h) {
       var m = /var VERSION = "([^"]+)"/.exec(h);
       if (m && m[1] !== VERSION) offer();
     }).catch(function () {});
   }
+  window.checkForUpdate = check;
   setTimeout(check, 1500);
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") check(); });
 })();
@@ -2017,6 +2026,12 @@ $("loginForm").addEventListener("submit", async function (ev) {
 Array.prototype.forEach.call(document.querySelectorAll("[data-logout]"), function (b) {
   b.addEventListener("click", function () { location.hash = ""; auth.signOut(); });
 });
+window.softRefresh = function () {
+  if (!auth.currentUser) return Promise.resolve();
+  var jobs = [loadSaved()];
+  if (state.isAdmin) jobs.push(loadUsers());
+  return Promise.all(jobs);
+};
 auth.onAuthStateChanged(async function (user) {
   showApp(!!user);
   state.isAdmin = false; setDot(0);
