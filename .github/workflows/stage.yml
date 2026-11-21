@@ -24,7 +24,7 @@ jobs:
         run: |
           rm -rf main/test && mkdir main/test
           cd next
-          cp index.html register.html firebase-messaging-sw.js manifest.json *.png ../main/test/
+          cp index.html register.html firebase-messaging-sw.js manifest.json forum.js forum.css *.png ../main/test/
           cd ../main
           git config user.name "test-site-bot"
           git config user.email "bot@users.noreply.github.com"

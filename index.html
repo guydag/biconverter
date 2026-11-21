@@ -1254,7 +1254,7 @@ var DEL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stro
 function tsMs(t) { return t && t.toMillis ? t.toMillis() : 0; }
 /* Non-alumni who are not in a report's list get a gentle heads-up (they usually should be registered for their own trip). */
 function selfMissingFrom(rows, d) {
-  var p = state.profile; if (!p || !p.role || p.role === "בוגר" || (!p.fullName && !p.idNumber) || rows.length < 2) return false;
+  var p = state.profile; if (!p || !p.role || ALUMNI_ROLES.indexOf(p.role) !== -1 || (!p.fullName && !p.idNumber) || rows.length < 2) return false;
   var n = function (t) { return String(t || "").replace(/["'׳״\u05F3\u05F4]/g, "").replace(/[^\u05D0-\u05EAa-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); };
   var me = n(p.fullName), parts = me.split(" "), rev = parts.slice(1).concat(parts[0]).join(" ");
   var fi = rows[0].indexOf("שם פרטי"), li = rows[0].indexOf("שם משפחה"); if (fi < 0) fi = 0; if (li < 0) li = 1;
@@ -2117,7 +2117,8 @@ document.addEventListener("click", function (e) {
 $("usersSearch").addEventListener("input", function () { state.usersPage = 0; renderUsers(); });
 
 $("usersMore").addEventListener("click", function () { state.usersAll = !state.usersAll; renderUsers(); });
-var ROLES = ["מדריך קורס", "ראשג״ד", "ראש״צ", "מרכז", "בוגר"];
+var ROLES = ["מדריך קורס", "ראשג״ד", "ראש״צ", "מרכז צעיר", "מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
+var ALUMNI_ROLES = ["בוגר", "מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
 function validIsraeliId(v) {
   if (!/^\d{9}$/.test(v)) return false;
   var sum = 0;
