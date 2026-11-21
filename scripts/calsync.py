@@ -583,6 +583,24 @@ def drive_upload(s, data):
     return r.json()
 
 
+def publish_managers(db, firestore):
+    """The registration page lets a new user pick their direct manager; it can't read the users list, so keep a public copy of the names."""
+    try:
+        out = []
+        for d in db.collection("users").stream():
+            u = d.to_dict() or {}
+            if u.get("paused") or u.get("role") not in ("מרכז צעיר", "מרכז בוגר"):
+                continue
+            out.append({"id": d.id, "name": u.get("fullName") or u.get("name") or d.id.split("@")[0], "role": u.get("role")})
+        out.sort(key=lambda x: (x["role"] != "מרכז בוגר", x["name"]))
+        ref = db.collection("public").document("managers")
+        cur = ref.get()
+        if not cur.exists or (cur.to_dict() or {}).get("list") != out:
+            ref.set({"list": out, "at": firestore.SERVER_TIMESTAMP})
+    except Exception as e:
+        print("Could not update the managers list:", e)
+
+
 def run_actions():
     raw = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     if not raw:
@@ -593,6 +611,7 @@ def run_actions():
     from firebase_admin import credentials, firestore
     firebase_admin.initialize_app(credentials.Certificate(info))
     db = firestore.client()
+    publish_managers(db, firestore)
     s = drive_session(info)
     status = db.collection("cal").document("status")
     try:
