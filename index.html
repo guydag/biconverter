@@ -417,6 +417,17 @@ footer .version { margin-top: 4px; }
 .eu-roles label { padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 999px; font-weight: 700; font-size: 14px; cursor: pointer; background: var(--bg); transition: all .15s; }
 .eu-roles input:checked + label { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .eu-roles.locked label { cursor: default; opacity: .55; }
+.org { list-style: none; margin: 0; padding: 0; }
+.org ul { list-style: none; margin: 0; padding: 0 0 0 0; padding-inline-start: 22px; border-inline-start: 2px solid var(--line); margin-inline-start: 15px; }
+.org-row { display: flex; align-items: center; gap: 10px; padding: 6px 6px; border-radius: 10px; cursor: pointer; }
+.org-row:hover { background: var(--accent-soft); }
+.u-av.sm { width: 30px; height: 30px; font-size: 12px; flex: none; }
+.org-t { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.org-t strong { font-size: 15px; }
+.org-role { font-size: 12.5px; color: var(--muted); }
+.org-miss { font-size: 11.5px; font-weight: 700; color: var(--err); background: var(--err-soft); border-radius: 999px; padding: 0 8px; }
+.org-note { margin-top: 10px; }
+.pend-mgr { font-size: 12.5px; color: var(--muted); }
 .eu-roles.locked input:checked + label { opacity: 1; }
 .eu-roles input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eu-foot { position: sticky; bottom: 0; background: var(--surface); margin: 4px -18px 0; justify-content: flex-start; }
@@ -703,6 +714,10 @@ button:focus-visible, summary:focus-visible, .eu-roles input:focus-visible + lab
   <div id="pendingList"></div>
   <p class="note" id="pendMsg" hidden></p>
 </section>
+      <div id="orgSection" hidden>
+        <h2 class="sec-title grp">עץ ארגוני</h2>
+        <section class="card org-card"><div id="orgTree"></div></section>
+      </div>
       <div id="usersSection" hidden>
         <h2 class="sec-title grp">ניהול משתמשים</h2>
         <section class="card table-card">
@@ -1165,12 +1180,13 @@ function renderProfile() {
   var bits = [];
   if (p.role) bits.push(["role", p.role]);
   if (p.idNumber) bits.push(["id", p.idNumber]);
+  if (p.managerName || p.manager) bits.push(["mgr", "אחראי/ת ישיר/ה: " + (p.managerName || shortId(p.manager))]);
   bits.push(["un", shortId(id)]);
   bits.forEach(function (bt, i) {
     if (i) { var d = document.createElement("i"); d.className = "u-dot"; meta.appendChild(d); }
-    var e = document.createElement(bt[0] === "role" ? "span" : "bdi"); e.className = "u-" + bt[0]; e.textContent = bt[1]; meta.appendChild(e);
+    var e = document.createElement(bt[0] === "role" || bt[0] === "mgr" ? "span" : "bdi"); e.className = "u-" + bt[0]; e.textContent = bt[1]; meta.appendChild(e);
   });
-  $("pfEdit").onclick = function () { editUser({ id: id, name: p.name || "", fullName: p.fullName || "", idNumber: p.idNumber || "", role: p.role || "" }, { self: true }); };
+  $("pfEdit").onclick = function () { editUser({ id: id, name: p.name || "", fullName: p.fullName || "", idNumber: p.idNumber || "", role: p.role || "", manager: p.manager || "" }, { self: true }); };
   card.hidden = false;
 }
 function setGreeting() {
@@ -1947,6 +1963,34 @@ try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", func
 applyTheme(themeMode());
 
 /* User management (admins only). Firestore rules decide who may read or write these. */
+function renderOrg() {
+  var box = $("orgTree"); if (!box) return;
+  var users = (state.users || []).filter(function (u) { return u.name || u.fullName; });
+  $("orgSection").hidden = !state.isAdmin || !users.length;
+  box.textContent = "";
+  var ids = {}; users.forEach(function (u) { ids[u.id] = u; });
+  var kids = {}; users.forEach(function (u) { var m = u.manager && ids[u.manager] ? u.manager : ""; (kids[m] = kids[m] || []).push(u); });
+  var byName = function (a, b) { return (a.fullName || a.name).localeCompare(b.fullName || b.name, "he"); };
+  function node(u, depth, seen) {
+    var li = document.createElement("li"); li.className = "org-n";
+    var row = document.createElement("div"); row.className = "org-row";
+    var av = document.createElement("span"); av.className = "u-av sm"; av.textContent = initialsOf(u.fullName || u.name); row.appendChild(av);
+    var t = document.createElement("span"); t.className = "org-t"; var b = document.createElement("strong"); b.textContent = u.fullName || u.name; t.appendChild(b);
+    if (u.role) { var r = document.createElement("span"); r.className = "org-role"; r.textContent = u.role; t.appendChild(r); }
+    if (!u.manager && NO_MANAGER_ROLES.indexOf(u.role) === -1) { var w = document.createElement("span"); w.className = "org-miss"; w.textContent = "חסר אחראי ישיר"; t.appendChild(w); }
+    row.appendChild(t);
+    row.addEventListener("click", function () { editUser(u); });
+    li.appendChild(row);
+    var ch = (kids[u.id] || []).filter(function (c) { return !seen[c.id]; }).sort(byName);
+    if (ch.length && depth < 8) { var ul = document.createElement("ul"); ch.forEach(function (c) { seen[c.id] = 1; ul.appendChild(node(c, depth + 1, seen)); }); li.appendChild(ul); }
+    return li;
+  }
+  var seen = {}, rootUl = document.createElement("ul"); rootUl.className = "org";
+  var roots = (kids[""] || []).sort(function (a, b) { return (NO_MANAGER_ROLES.indexOf(a.role) === -1) - (NO_MANAGER_ROLES.indexOf(b.role) === -1) || ((kids[b.id] || []).length - (kids[a.id] || []).length) || byName(a, b); });
+  roots.forEach(function (u) { seen[u.id] = 1; rootUl.appendChild(node(u, 0, seen)); });
+  box.appendChild(rootUl);
+  var note = document.createElement("p"); note.className = "note org-note"; note.textContent = "לחיצה על שם פותחת עריכה, ושם בוחרים אחראי/ת ישיר/ה."; box.appendChild(note);
+}
 function shortId(id) { return id.replace(/@masuot\.app$/, ""); }
 async function loadUsers() {
   var box = $("usersList"), st = $("usersStatus");
@@ -1955,11 +1999,12 @@ async function loadUsers() {
     var us = await db.collection("users").get();
     var as = await db.collection("admins").get();
     var admins = {}; as.forEach(function (d) { admins[d.id] = true; });
-    var list = [], paused = {}; us.forEach(function (d) { var dd = d.data() || {}; if (dd.paused) { paused[d.id] = true; return; } list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", admin: !!admins[d.id] }); });
+    var list = [], paused = {}; us.forEach(function (d) { var dd = d.data() || {}; if (dd.paused) { paused[d.id] = true; return; } list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", manager: dd.manager || "", admin: !!admins[d.id] }); });
     Object.keys(admins).forEach(function (id) { if (!paused[id] && !list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
     list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
     renderUsers();
+    renderOrg();
     loadPending();
   } catch (e) { st.textContent = "לא הצלחנו לטעון את המשתמשים."; st.hidden = false; }
 }
@@ -1989,6 +2034,7 @@ async function loadPending() {
       if (d.role) { var rl = document.createElement("span"); rl.className = "pend-role"; rl.textContent = d.role; sm.appendChild(rl); }
       if (en) { var eb = document.createElement("bdi"); eb.textContent = en; sm.appendChild(eb); }
       if (d.idNumber) { var ib = document.createElement("bdi"); ib.className = "pend-id"; ib.textContent = "ת״ז " + d.idNumber; sm.appendChild(ib); }
+      if (d.managerName) { var mb = document.createElement("span"); mb.className = "pend-mgr"; mb.textContent = "אחראי/ת: " + d.managerName; sm.appendChild(mb); }
       who.appendChild(st); who.appendChild(sm); row.appendChild(who);
       var acts = document.createElement("div"); acts.className = "acts";
       acts.appendChild(mkIcon("check", "אישור", "ok", async function () {
@@ -1999,7 +2045,7 @@ async function loadPending() {
         try {
           var ex = await db.collection("users").doc(email).get();
           if (ex.exists) { pendMsg("כבר קיים משתמש בשם %s. אפשר לדחות את הבקשה או לשנות את שם המשתמש הקיים.", [uid]); return; }
-          await db.collection("users").doc(email).set({ name: name, fullName: (d.fullName || "").trim(), idNumber: d.idNumber || "", role: d.role || "" });
+          await db.collection("users").doc(email).set({ name: name, fullName: (d.fullName || "").trim(), idNumber: d.idNumber || "", role: d.role || "", manager: d.manager || "", managerName: d.managerName || "" });
           await db.collection("pending").doc(it.id).delete();
           pendMsg("%s אושר. כדי שיוכל להיכנס, יוצרים ב-Firebase › Authentication › Add user משתמש עם האימייל %s וסיסמה.", [name, email]);
           loadUsers();
@@ -2121,6 +2167,12 @@ $("usersSearch").addEventListener("input", function () { state.usersPage = 0; re
 $("usersMore").addEventListener("click", function () { state.usersAll = !state.usersAll; renderUsers(); });
 var ROLES = ["מדריך קורס", "ראשג״ד", "ראש״צ", "מרכז צעיר", "מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
 var ALUMNI_ROLES = ["בוגר", "מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
+/* Org tree: every user except alumni has a direct manager, chosen from the young coordinators and the senior coordinator (מרכז בוגר). */
+var NO_MANAGER_ROLES = ["בוגר", "מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
+var NO_REPORTS_ROLES = ["דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
+var MANAGER_ROLES = ["מרכז צעיר", "מרכז בוגר"];
+function canBeManager(u) { return MANAGER_ROLES.indexOf(u.role || "") !== -1; }
+function userName(id) { var u = (state.users || []).filter(function (x) { return x.id === id; })[0]; return u ? (u.fullName || u.name || shortId(id)) : (id ? shortId(id) : ""); }
 function validIsraeliId(v) {
   if (!/^\d{9}$/.test(v)) return false;
   var sum = 0;
@@ -2163,6 +2215,17 @@ function editUser(u, opts) {
   body.appendChild(fieldBlock("שם מלא", fn, "euName"));
   body.appendChild(fieldBlock("תעודת זהות", idn, "euId"));
   var rw = document.createElement("div"); rw.className = "eu-f"; var rlab = document.createElement("span"); rlab.className = "eu-lab"; rlab.textContent = "תפקיד"; rw.appendChild(rlab); rw.appendChild(rl); body.appendChild(rw);
+  var mgrSel = null, mgrRow = null;
+  if (state.isAdmin && state.users) {
+    mgrSel = document.createElement("select"); mgrSel.className = "field"; mgrSel.id = "euMgr";
+    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "— בלי אחראי ישיר —"; mgrSel.appendChild(o0);
+    state.users.filter(function (x) { return x.id !== u.id && canBeManager(x); }).forEach(function (x) {
+      var o = document.createElement("option"); o.value = x.id; o.textContent = (x.fullName || x.name || shortId(x.id)) + (x.role ? " · " + x.role : ""); if (x.id === u.manager) o.selected = true; mgrSel.appendChild(o);
+    });
+    mgrRow = fieldBlock("אחראי/ת ישיר/ה", mgrSel, "euMgr"); body.appendChild(mgrRow);
+    var syncMgr = function () { mgrRow.hidden = NO_MANAGER_ROLES.indexOf(role) !== -1; };
+    syncMgr(); rl.addEventListener("click", function () { setTimeout(syncMgr, 0); });
+  }
   if (opts.self && !state.isAdmin) { rl.classList.add("locked"); var rn = document.createElement("p"); rn.className = "eu-hint-role"; rn.textContent = "רק מנהל יכול לשנות תפקיד."; rn.style.cssText = "margin:0;color:var(--muted);font-size:13px"; rw.appendChild(rn); }
   var pwOld, pwNew, pwNew2, pwOpen = false;
   if (opts.self) {
@@ -2201,9 +2264,11 @@ function editUser(u, opts) {
         try { await cu.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(cu.email, pwOld.value)); }
         catch (pe2) { var pc = pe2 && pe2.code || ""; err.textContent = pc === "auth/too-many-requests" ? "יותר מדי ניסיונות. נסו שוב בעוד כמה דקות." : "הסיסמה הנוכחית שגויה."; save.disabled = false; return; }
       }
-      await db.collection("users").doc(u.id).set({ name: name.split(" ")[0], fullName: name, idNumber: id, role: role });
+      var upd = { name: name.split(" ")[0], fullName: name, idNumber: id, role: role };
+      if (mgrSel) { upd.manager = NO_MANAGER_ROLES.indexOf(role) !== -1 ? "" : mgrSel.value; upd.managerName = upd.manager ? userName(upd.manager) : ""; }
+      await db.collection("users").doc(u.id).set(upd, { merge: true });
       var meId = auth.currentUser ? auth.currentUser.email.toLowerCase() : "";
-      if (u.id === meId) { state.profile = { name: name.split(" ")[0], fullName: name, idNumber: id, role: role }; renderProfile(); setGreeting(); }
+      if (u.id === meId) { state.profile = Object.assign({}, state.profile || {}, upd); renderProfile(); setGreeting(); }
       if (wantsPw) { try { await auth.currentUser.updatePassword(pwNew.value); } catch (pe3) { err.textContent = (pe3 && pe3.code === "auth/weak-password") ? "הפרטים נשמרו, אבל הסיסמה חלשה מדי." : "הפרטים נשמרו, אבל עדכון הסיסמה לא הצליח."; save.disabled = false; if (state.isAdmin) loadUsers(); return; } }
       closePreview(); if (state.isAdmin) loadUsers();
     } catch (er) { err.textContent = "השמירה לא הצליחה. נסו שוב."; save.disabled = false; }

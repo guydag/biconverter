@@ -138,6 +138,11 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
         <input type="radio" name="role" id="r8" value="מדריכת שכבה"><label for="r8">מדריכת שכבה</label>
       </div>
       <div class="msg" id="m-role"></div>
+      <div id="mgrWrap" hidden style="margin-top:14px">
+        <label class="l" for="mgr">מי האחראי/ת הישיר/ה שלך?</label>
+        <select class="f" id="mgr" style="padding-right:14px"><option value="">בחירה מהרשימה…</option></select>
+        <div class="msg" id="m-mgr"></div>
+      </div>
     </div>
     <div class="err" id="err" role="alert" hidden></div>
     <button class="btn" id="go" type="submit"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10.5 13.5"/><path d="M21 3l-6.5 18-4-7.5L3 9.5 21 3z"/></svg><span id="goTxt">שליחת בקשה</span></button>
@@ -184,10 +189,12 @@ $("f").addEventListener("submit", async function (ev) {
   if (full.split(" ").length < 2 || !/^[\u0590-\u05FF][\u0590-\u05FF \-'"\u05F3\u05F4]*$/.test(full) || full.replace(/[^\u0590-\u05FF]/g, "").length < 4) ok = fail("full", "נא לכתוב שם פרטי ושם משפחה בעברית.") && ok;
   if (!/^[a-z]{3,20}$/.test(first)) ok = fail("first", "שם משתמש: 3 עד 20 אותיות באנגלית, בלי רווחים וספרות.") && ok;
   if (!rb) { $("m-role").textContent = "נא לבחור תפקיד."; ok = false; }
+  var needMgr = rb && NO_MGR.indexOf(rb.value) === -1, mgr = $("mgr").value;
+  if (needMgr && !mgr && MANAGERS.length) { $("m-mgr").textContent = "נא לבחור אחראי/ת ישיר/ה."; ok = false; }
   if (!ok || document.querySelector(".msg:not(:empty)")) return;
   var btn = $("go"); btn.disabled = true; $("goTxt").textContent = "שולח…";
   try {
-    await db.collection("pending").doc(idn).set({ idNumber: idn, fullName: full, first: first, last: last, role: rb.value, at: firebase.firestore.FieldValue.serverTimestamp() });
+    await db.collection("pending").doc(idn).set({ idNumber: idn, fullName: full, first: first, last: last, role: rb.value, manager: needMgr ? mgr : "", managerName: needMgr && mgr ? $("mgr").selectedOptions[0].dataset.name : "", at: firebase.firestore.FieldValue.serverTimestamp() });
     $("f").hidden = true; $("done").hidden = false; window.scrollTo(0, 0);
   } catch (e) {
     var dup = e && e.code === "permission-denied";
@@ -196,6 +203,16 @@ $("f").addEventListener("submit", async function (ev) {
   }
 });
 
+/* Direct manager: alumni have none; everyone else picks one from a public list kept up to date by the sync job. */
+var NO_MGR = ["מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה", "בוגר"], MANAGERS = [];
+function syncMgr() { var rb = document.querySelector('input[name=role]:checked'); $("mgrWrap").hidden = !rb || NO_MGR.indexOf(rb.value) !== -1 || !MANAGERS.length; }
+Array.prototype.forEach.call(document.querySelectorAll('input[name=role]'), function (r) { r.addEventListener("change", function () { $("m-mgr").textContent = ""; syncMgr(); }); });
+$("mgr").addEventListener("change", function () { $("m-mgr").textContent = ""; });
+db.collection("public").doc("managers").get().then(function (s) {
+  MANAGERS = (s.exists && s.data().list) || [];
+  MANAGERS.forEach(function (m) { var o = document.createElement("option"); o.value = m.id; o.dataset.name = m.name; o.textContent = m.name + (m.role ? " · " + m.role : ""); $("mgr").appendChild(o); });
+  syncMgr();
+}).catch(function () {});
 function setValid(id, ok) { var f = $(id).parentNode; if (f) f.classList.toggle("valid", !!ok); }
 function checkAll() {
   setValid("idn", validId($("idn").value));
