@@ -331,6 +331,14 @@
   function timeAgo(d) { var m = Math.round((Date.now() - d.getTime()) / 60000); return m < 1 ? "עכשיו" : m < 60 ? "לפני " + m + " דק׳" : m < 1440 ? "לפני " + Math.round(m / 60) + " שע׳" : "לפני " + Math.round(m / 1440) + " ימים"; }
   function sortEv(a, b) { return (a.time || "99:99").localeCompare(b.time || "99:99") || String(a.title).localeCompare(String(b.title), "he"); }
 
+  /* The calendar fills the screen down to the tab bar, without scrolling the page (like גאנט׳). */
+  Cal.space = function (extra) {
+    var sc = document.scrollingElement || document.documentElement;
+    var top = Cal.body.getBoundingClientRect().top + (document.body.scrollTop || 0) + (sc.scrollTop || 0);
+    var bar = document.querySelector(".tabbar"), wide = window.matchMedia("(min-width: 900px)").matches;
+    var bottom = (!wide && bar ? bar.offsetHeight : 0) + (wide ? 28 : 12);
+    return Math.max(0, window.innerHeight - top - bottom - (extra || 0));
+  };
   Cal.renderMonth = function (list) {
     var cur = parse(Cal.cur);
     Cal.titleEl.textContent = MONTHS[cur.getMonth()] + " " + cur.getFullYear();
@@ -339,13 +347,14 @@
     var end = iso(new Date(last.getFullYear(), last.getMonth(), last.getDate() + (6 - last.getDay())));
     var weeks = (diffDays(start, end) + 1) / 7;
     var phone = window.matchMedia("(max-width: 600px)").matches;
-    var CELL = phone ? 96 : 110, BT = phone ? 25 : 29, BL = phone ? 18 : 22, STEP = phone ? 18 : 22;
+    var BT = phone ? 25 : 29, BL = phone ? 18 : 22, STEP = phone ? 18 : 22;
+    var CELL = Math.max(phone ? 64 : 72, Math.floor(Cal.space(phone ? 30 : 34) / weeks));
     var acts = {}; list.forEach(function (e) { if (F.isActivity(e)) acts[e.date] = true; });
     var t = today();
 
     var month = el("div", "cv-month");
     var wd = el("div", "cv-wd"); DAYS_S.forEach(function (d) { wd.appendChild(el("span", "", d)); }); month.appendChild(wd);
-    var grid = el("div", "cv-grid"); grid.style.setProperty("--rows", weeks); month.appendChild(grid);
+    var grid = el("div", "cv-grid"); grid.style.setProperty("--rows", weeks); grid.style.height = (CELL * weeks) + "px"; month.appendChild(grid);
     for (var w = 0; w < weeks; w++) {
       var ws = addDays(start, w * 7), we = addDays(ws, 6);
       var wk = el("div", "cv-wk");
@@ -511,6 +520,7 @@
     body.appendChild(hours); body.appendChild(cols); scroll.appendChild(body); tg.appendChild(scroll);
     var keep = still && Cal.body.querySelector(".tg-scroll") ? Cal.body.querySelector(".tg-scroll").scrollTop : null;
     Cal.body.textContent = ""; Cal.body.appendChild(tg);
+    scroll.style.height = Math.max(200, Cal.space() - head.offsetHeight - allrow.offsetHeight - 2) + "px";
     var top = Math.max(0, Math.min(first === 24 * 60 ? 8 * 60 : first, start <= t && t <= end ? nowM - 120 : 24 * 60) / 60 * HH - 10);
     if (first === 24 * 60 && !(start <= t && t <= end)) top = 8 * HH;
     scroll.scrollTop = keep != null ? keep : top;
