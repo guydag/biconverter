@@ -744,7 +744,7 @@ button:focus-visible, summary:focus-visible, .eu-roles input:focus-visible + lab
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="forum.js?v=6"></script>
+<script src="forum.js?v=7"></script>
 <script>
 document.documentElement.lang = "he";
 document.documentElement.dir = "rtl";
@@ -1971,7 +1971,14 @@ applyTheme(themeMode());
 /* User management (admins only). Firestore rules decide who may read or write these. */
 function renderOrg() {
   var box = $("orgTree"); if (!box) return;
-  var users = (state.users || []).filter(function (u) { return u.name || u.fullName; });
+  var users = (state.users || []).concat(state.pausedUsers || []).filter(function (u) { return u.name || u.fullName; });
+  /* A manager who is not a user of the site yet still gets a place in the tree, by name. */
+  users.slice().forEach(function (u) {
+    if (u.manager || !u.managerName) return;
+    var vid = "name:" + u.managerName;
+    if (!users.some(function (x) { return x.id === vid; })) users.push({ id: vid, fullName: u.managerName, role: "עדיין לא רשום/ה באתר", virtual: true });
+    u.manager = vid;
+  });
   $("orgSection").hidden = !state.isAdmin || !users.length;
   box.textContent = "";
   var ids = {}; users.forEach(function (u) { ids[u.id] = u; });
@@ -1983,9 +1990,10 @@ function renderOrg() {
     var av = document.createElement("span"); av.className = "u-av sm"; av.textContent = initialsOf(u.fullName || u.name); row.appendChild(av);
     var t = document.createElement("span"); t.className = "org-t"; var b = document.createElement("strong"); b.textContent = u.fullName || u.name; t.appendChild(b);
     if (u.role) { var r = document.createElement("span"); r.className = "org-role"; r.textContent = u.role; t.appendChild(r); }
-    if (!u.manager && NO_MANAGER_ROLES.indexOf(u.role) === -1) { var w = document.createElement("span"); w.className = "org-miss"; w.textContent = "חסר אחראי ישיר"; t.appendChild(w); }
+    if (u.paused) { var ps = document.createElement("span"); ps.className = "org-role"; ps.textContent = "· מושהה"; t.appendChild(ps); }
+    if (!u.manager && !u.virtual && NO_MANAGER_ROLES.indexOf(u.role) === -1) { var w = document.createElement("span"); w.className = "org-miss"; w.textContent = "חסר אחראי ישיר"; t.appendChild(w); }
     row.appendChild(t);
-    row.addEventListener("click", function () { editUser(u); });
+    if (u.virtual) row.style.cursor = "default"; else row.addEventListener("click", function () { var real = (state.users || []).concat(state.pausedUsers || []).filter(function (x) { return x.id === u.id; })[0] || u; editUser(real); });
     li.appendChild(row);
     var ch = (kids[u.id] || []).filter(function (c) { return !seen[c.id]; }).sort(byName);
     if (ch.length && depth < 8) { var ul = document.createElement("ul"); ch.forEach(function (c) { seen[c.id] = 1; ul.appendChild(node(c, depth + 1, seen)); }); li.appendChild(ul); }
@@ -2005,7 +2013,7 @@ async function loadUsers() {
     var us = await db.collection("users").get();
     var as = await db.collection("admins").get();
     var admins = {}; as.forEach(function (d) { admins[d.id] = true; });
-    var list = [], paused = {}; us.forEach(function (d) { var dd = d.data() || {}; if (dd.paused) { paused[d.id] = true; return; } list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", manager: dd.manager || "", admin: !!admins[d.id] }); });
+    var list = [], paused = {}; state.pausedUsers = []; us.forEach(function (d) { var dd = d.data() || {}; if (dd.paused) { paused[d.id] = true; state.pausedUsers.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", role: dd.role || "", manager: dd.manager || "", managerName: dd.managerName || "", paused: true }); return; } list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", manager: dd.manager || "", managerName: dd.managerName || "", admin: !!admins[d.id] }); });
     Object.keys(admins).forEach(function (id) { if (!paused[id] && !list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
     list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
@@ -2053,6 +2061,10 @@ async function loadPending() {
           if (ex.exists) { pendMsg("כבר קיים משתמש בשם %s. אפשר לדחות את הבקשה או לשנות את שם המשתמש הקיים.", [uid]); return; }
           await db.collection("users").doc(email).set({ name: name, fullName: (d.fullName || "").trim(), idNumber: d.idNumber || "", role: d.role || "", manager: d.manager || "", managerName: d.managerName || "" });
           await db.collection("pending").doc(it.id).delete();
+          try {
+            var waiting = await db.collection("users").where("managerName", "==", (d.fullName || "").trim()).get();
+            await Promise.all(waiting.docs.filter(function (w) { return !(w.data() || {}).manager; }).map(function (w) { return w.ref.set({ manager: email }, { merge: true }); }));
+          } catch (e) {}
           pendMsg("%s אושר. כדי שיוכל להיכנס, יוצרים ב-Firebase › Authentication › Add user משתמש עם האימייל %s וסיסמה.", [name, email]);
           loadUsers();
         } catch (e) { pendMsg("האישור לא הצליח.", []); }
