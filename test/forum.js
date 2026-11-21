@@ -244,10 +244,11 @@
         db.collection("cal").doc("all").onSnapshot(function (s) {
           var d = s.exists ? s.data() : {};
           try { Cal.events = d.events ? JSON.parse(d.events) : []; } catch (e) { Cal.events = []; }
-          Cal.cats = d.cats || [];
+          var seenCat = {}; Cal.cats = (d.cats || []).filter(function (c) { if (seenCat[c.name]) return false; seenCat[c.name] = 1; return true; });
           Cal.syncedAt = d.at && d.at.toDate ? d.at.toDate() : null;
           Cal.empty = !s.exists;
-          if (got < 2) done(); else Cal.render(true);
+          Cal.error = false;
+          if (got < 2) done(); else { Cal.render(true); if (Book.loaded && F.area === "book") Book.render(); }
         }, function () { Cal.error = true; if (got < 2) done(); }),
         db.collection("cal_ops").where("state", "in", ["pending", "failed"]).onSnapshot(function (s) {
           var list = []; s.forEach(function (d) { var o = d.data(); o.id = d.id; list.push(o); });
@@ -727,8 +728,8 @@
     Gear.built = true;
     var v = Gear.view;
     var h = head(v, "בקשת ציוד", "לתאריכי פעולות בלבד");
-    Gear.newBtn = btn("בקשה חדשה", "primary small", function () { Gear.form(); }, "plus");
-    h.insertBefore(Gear.newBtn, h.lastChild);
+    Gear.newBtn = btn("בקשת ציוד חדשה", "primary small fv-act", function () { Gear.form(); }, "plus");
+    v.appendChild(Gear.newBtn);
     Gear.seg = el("div", "fseg"); v.appendChild(Gear.seg);
     Gear.err = el("div", "fv-err"); Gear.err.hidden = true; v.appendChild(Gear.err);
     Gear.body = el("div", "gr-list"); v.appendChild(Gear.body);
@@ -937,8 +938,8 @@
     Links.built = true;
     var v = Links.view;
     var h = head(v, "קישורים שימושיים");
-    Links.addBtn = btn("קישור חדש", "primary small", function () { Links.form(); }, "plus");
-    h.insertBefore(Links.addBtn, h.lastChild);
+    Links.addBtn = btn("קישור חדש", "primary small fv-act", function () { Links.form(); }, "plus");
+    v.appendChild(Links.addBtn);
     Links.err = el("div", "fv-err"); Links.err.hidden = true; v.appendChild(Links.err);
     Links.body = el("div", "lk-list"); v.appendChild(Links.body);
   };
