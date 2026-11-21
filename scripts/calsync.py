@@ -14,6 +14,7 @@ import json
 import os
 import re
 import sys
+import time
 import zipfile
 import datetime as dt
 import xml.etree.ElementTree as ET
@@ -601,70 +602,118 @@ def publish_managers(db, firestore):
         print("Could not update the managers list:", e)
 
 
-def run_actions():
+class Sync:
+    """One connection to Firestore and Drive, used for a single sync or for a watch loop."""
+
+    def __init__(self, info):
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        self.fs = firestore
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(credentials.Certificate(info))
+        self.db = firestore.client()
+        self.info = info
+        self.s = drive_session(info)
+        self.status = self.db.collection("cal").document("status")
+        self.last_modified = None
+
+    def pending_ops(self):
+        ops = []
+        for d in self.db.collection("cal_ops").where("state", "==", "pending").stream():
+            o = d.to_dict()
+            o["id"] = d.id
+            ops.append(o)
+        return ops
+
+    def once(self, ops=None):
+        """Apply waiting changes to the Excel, then store the events. Returns False if Drive can't be reached."""
+        fs, db, s = self.fs, self.db, self.s
+        try:
+            meta = drive_meta(s)
+        except Exception as e:
+            msg = str(e)
+            print("Drive error:", msg)
+            self.status.set({"ok": False, "error": msg[:500], "serviceAccount": self.info.get("client_email"), "at": fs.SERVER_TIMESTAMP})
+            return False
+        if ops is None:
+            ops = self.pending_ops()
+        book = Book(drive_download(s))
+        if ops:
+            results = apply_ops(book, ops)
+            if book.changed:
+                # Upload only if the file did not change in Drive since we read it.
+                now = drive_meta(s)
+                if now.get("headRevisionId") != meta.get("headRevisionId") or now.get("modifiedTime") != meta.get("modifiedTime"):
+                    print("The file changed in Drive while syncing; trying again in a moment.")
+                    return True
+                new_bytes = book.save()
+                drive_upload(s, new_bytes)
+                book = Book(new_bytes)
+                meta = drive_meta(s)
+            for o in ops:
+                r = results.get(o["id"], {"ok": False, "error": "לא טופל"})
+                db.collection("cal_ops").document(o["id"]).set(
+                    {"state": "done" if r.get("ok") else "failed", "error": r.get("error", ""), "doneAt": fs.SERVER_TIMESTAMP}, merge=True)
+            print("Applied", len(ops), "changes:", results)
+        sheets, legend = load(book)
+        evs = all_events(sheets, legend)
+        cats = [{"name": v, "color": k[2:]} for k, v in legend.items()]
+        payload = json.dumps(evs, ensure_ascii=False)
+        db.collection("cal").document("all").set({
+            "events": payload, "cats": cats, "count": len(evs),
+            "fileModified": meta.get("modifiedTime"), "at": fs.SERVER_TIMESTAMP,
+        })
+        self.status.set({"ok": True, "error": "", "count": len(evs), "at": fs.SERVER_TIMESTAMP})
+        self.last_modified = meta.get("modifiedTime")
+        print(time.strftime("%H:%M:%S"), "Stored", len(evs), "events.")
+        return True
+
+    def watch(self, minutes):
+        """Keep watching for a while: a change in the site or in the Excel shows up within seconds."""
+        end = time.time() + minutes * 60
+        publish_managers(self.db, self.fs)
+        self.once()
+        last_drive = last_mgr = time.time()
+        while time.time() < end:
+            time.sleep(6)
+            try:
+                ops = self.pending_ops()
+                if ops:
+                    time.sleep(2)  # let a burst of edits arrive together
+                    self.once()
+                    last_drive = time.time()
+                    continue
+                if time.time() - last_drive >= 20:
+                    last_drive = time.time()
+                    m = drive_meta(self.s).get("modifiedTime")
+                    if m != self.last_modified:
+                        print("The Excel changed in Drive.")
+                        self.once([])
+                if time.time() - last_mgr >= 600:
+                    last_mgr = time.time()
+                    publish_managers(self.db, self.fs)
+            except Exception as e:  # a network hiccup should not end the watch
+                print("Retrying after error:", e)
+                time.sleep(10)
+
+
+def run_actions(watch_minutes=0):
     raw = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     if not raw:
         print("FIREBASE_SERVICE_ACCOUNT is not set; nothing to do.")
         return
-    info = json.loads(raw)
-    import firebase_admin
-    from firebase_admin import credentials, firestore
-    firebase_admin.initialize_app(credentials.Certificate(info))
-    db = firestore.client()
-    publish_managers(db, firestore)
-    s = drive_session(info)
-    status = db.collection("cal").document("status")
-    try:
-        meta = drive_meta(s)
-    except Exception as e:
-        msg = str(e)
-        print("Drive error:", msg)
-        status.set({"ok": False, "error": msg[:500], "serviceAccount": info.get("client_email"), "at": firestore.SERVER_TIMESTAMP})
-        # Not a failed run: until Drive access is switched on this would otherwise email a failure every 5 minutes.
-        return
-    data = drive_download(s)
-    book = Book(data)
-
-    pending = [d for d in db.collection("cal_ops").where("state", "==", "pending").stream()]
-    ops = []
-    for d in pending:
-        o = d.to_dict()
-        o["id"] = d.id
-        ops.append(o)
-    if ops:
-        results = apply_ops(book, ops)
-        if book.changed:
-            # Upload only if the file did not change in Drive since we read it.
-            now = drive_meta(s)
-            if now.get("headRevisionId") != meta.get("headRevisionId") or now.get("modifiedTime") != meta.get("modifiedTime"):
-                print("The file changed in Drive while syncing; trying again next run.")
-                return
-            new_bytes = book.save()
-            drive_upload(s, new_bytes)
-            book = Book(new_bytes)
-            meta = drive_meta(s)
-        for o in ops:
-            r = results.get(o["id"], {"ok": False, "error": "לא טופל"})
-            db.collection("cal_ops").document(o["id"]).set(
-                {"state": "done" if r.get("ok") else "failed", "error": r.get("error", ""), "doneAt": firestore.SERVER_TIMESTAMP}, merge=True)
-        print("Applied", len(ops), "changes:", results)
-
-    sheets, legend = load(book)
-    evs = all_events(sheets, legend)
-    cats = [{"name": v, "color": k[2:]} for k, v in legend.items()]
-    payload = json.dumps(evs, ensure_ascii=False)
-    db.collection("cal").document("all").set({
-        "events": payload, "cats": cats, "count": len(evs),
-        "fileModified": meta.get("modifiedTime"), "at": firestore.SERVER_TIMESTAMP,
-    })
-    status.set({"ok": True, "error": "", "count": len(evs), "at": firestore.SERVER_TIMESTAMP})
-    print("Stored", len(evs), "events,", len(cats), "categories,", len(payload), "bytes.")
+    sync = Sync(json.loads(raw))
+    if watch_minutes:
+        sync.watch(watch_minutes)
+    else:
+        publish_managers(sync.db, sync.fs)
+        sync.once()
 
 
 def main():
     args = sys.argv[1:]
     if "--file" not in args:
-        run_actions()
+        run_actions(int(args[args.index("--watch") + 1]) if "--watch" in args else 0)
         return
     path = args[args.index("--file") + 1]
     book = Book(open(path, "rb").read())
