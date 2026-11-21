@@ -385,3 +385,8 @@ body.signed #viewMain .admin-bar .btn { width: auto; font-size: 14.5px; padding:
 
 /* No "add to home screen" banner; installing stays available in settings. */
 #installBanner { display: none !important; }
+
+/* Room for the calendar on smaller screens: colour key only on wide screens (each event shows its category when opened), slimmer notice. */
+@media (max-width: 899px) { #viewCal .cv-sub { display: none; } }
+#viewCal .cal-note { padding: 7px 12px; font-size: 13px; }
+#viewCal .fv-head .fv-logo { width: 38px; height: 38px; }
