@@ -382,3 +382,6 @@ body.signed #viewMain .admin-bar { justify-content: flex-start; }
 body.signed #viewMain .admin-bar .btn { width: auto; font-size: 14.5px; padding: 8px 16px; border-radius: 10px; }
 @media (max-width: 520px) { body.signed #viewMain .admin-bar .btn { width: 100%; max-width: none; } }
 .set-logout { align-self: center; width: auto; }
+
+/* No "add to home screen" banner; installing stays available in settings. */
+#installBanner { display: none !important; }
