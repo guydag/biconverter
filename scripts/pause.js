@@ -1,5 +1,5 @@
-/* Pause or resume every account with a given role: node scripts/pause.js <pause|resume|list> "<role>".
-   Pausing disables the Firebase sign-in and revokes open sessions; admins are never touched.
+/* Pause or resume every account with a given role: node scripts/pause.js <pause|resume|sync|list> "<role>".
+   Pausing disables the Firebase sign-in, revokes open sessions and flags users/<email> with paused:true so the site hides them; admins are never touched.
    The paused emails are remembered in meta/paused so "resume" restores exactly them. */
 const admin = require("firebase-admin");
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) { console.log("FIREBASE_SERVICE_ACCOUNT is not set."); process.exit(0); }
@@ -9,10 +9,17 @@ const [action, role] = [process.argv[2] || "list", process.argv[3] || "מדרי�
 const short = (e) => String(e).replace(/@masuot\.app$/, "");
 (async () => {
   const ref = db.collection("meta").doc("paused");
+  const flag = (e, on) => db.collection("users").doc(e).set({ paused: on ? true : admin.firestore.FieldValue.delete() }, { merge: true });
+  if (action === "sync") {
+    const cur = (await ref.get()).data() || {};
+    for (const e of cur.emails || []) { await flag(e, true); console.log("flagged: " + short(e)); }
+    console.log("Flagged " + (cur.emails || []).length + " account(s).");
+    return;
+  }
   if (action === "resume") {
     const cur = (await ref.get()).data() || {};
     const emails = (cur.emails || []).filter((e) => !cur.role || cur.role === role);
-    for (const e of emails) { try { const u = await auth.getUserByEmail(e); await auth.updateUser(u.uid, { disabled: false }); console.log("resumed: " + short(e)); } catch (x) { console.log("failed: " + short(e) + " " + x.code); } }
+    for (const e of emails) { try { const u = await auth.getUserByEmail(e); await auth.updateUser(u.uid, { disabled: false }); await flag(e, false); console.log("resumed: " + short(e)); } catch (x) { console.log("failed: " + short(e) + " " + x.code); } }
     await ref.set({ emails: [], role: "", at: admin.firestore.FieldValue.serverTimestamp() });
     console.log("Resumed " + emails.length + " account(s).");
     return;
@@ -24,7 +31,7 @@ const short = (e) => String(e).replace(/@masuot\.app$/, "");
   if (action === "list") { todo.forEach((u) => console.log("would pause: " + short(u.email) + " | " + (u.fullName || u.name))); return; }
   const done = [];
   for (const u of todo) {
-    try { const a = await auth.getUserByEmail(u.email); await auth.updateUser(a.uid, { disabled: true }); await auth.revokeRefreshTokens(a.uid); done.push(u.email); console.log("paused: " + short(u.email) + " | " + (u.fullName || u.name)); }
+    try { const a = await auth.getUserByEmail(u.email); await auth.updateUser(a.uid, { disabled: true }); await auth.revokeRefreshTokens(a.uid); await flag(u.email, true); done.push(u.email); console.log("paused: " + short(u.email) + " | " + (u.fullName || u.name)); }
     catch (x) { console.log("failed: " + short(u.email) + " " + x.code); }
   }
   const prev = (await ref.get()).data() || {};

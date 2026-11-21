@@ -22,6 +22,8 @@
 .pv-table.marks td.newcell::after { content: "חדש"; background: var(--accent); color: var(--accent-fg); }
 .pv-table td.gonecell::after { content: "ביטל הרשמה"; background: var(--err); color: #fff; }
 .pv-table tr.gone td { background: var(--err-soft); }
+.pv-table tr.gone-new td { font-weight: 800; box-shadow: inset 0 -1px 0 var(--err); }
+.pv-table td.gone-newcell::after { content: "ביטל חדש"; }
 .pv-table.tagged td, .pv-headrow.tagged th { padding-inline: 12px; }
 .chip.chg { flex: 1 1 0; justify-content: center; font-weight: 700; }
 .chip.chg-new:not(.on) { color: var(--accent); border-color: var(--accent); }
@@ -741,7 +743,7 @@ var ALIASES = [
   ["טיול פסח שבטי", "פסח שבטי"],
   ["יום צופה", "טיול דרגה"]
 ];
-var VERSION = "v1.9";
+var VERSION = "v2.0";
 var IS_TEST = /\/test\/(index\.html)?$/.test(location.pathname);
 if (IS_TEST) { VERSION += " · בדיקות"; (function () { var b = document.createElement("div"); b.className = "test-ribbon"; b.textContent = "סביבת בדיקות"; document.body.appendChild(b); })(); }
 /* Pull down from the top of the screen to refresh, like a regular phone app. */
@@ -1090,10 +1092,13 @@ async function saveLatest(blob, name) {
   var ref = db.collection("factories").doc(key);
   /* Only the newest file per factory is kept: an older file never replaces a newer one. */
   var cur = await ref.get();
-  var fresh = [], removed = [];
+  var fresh = [], removed = [], removedIds = [], removedNew = [];
   if (cur.exists) {
     var c = cur.data(), curTime = c.fileTime || 0;
     if ((state.fileTime || 0) < curTime) return false;
+    /* The cancellation list is cumulative: what was already on it stays unless something below takes it off. */
+    removed = Array.isArray(c.removed) ? c.removed.slice() : [];
+    removedIds = removed.map(function (k, i) { return (Array.isArray(c.removedIds) && c.removedIds.length === removed.length && c.removedIds[i]) || ""; });
     /* People who were not in the previous report of this factory are marked as new. */
     try {
       var pw = XLSX.read(c.data, { type: "base64" });
@@ -1104,12 +1109,22 @@ async function saveLatest(blob, name) {
       prev.forEach(function (p) { pAll[p.k] = true; if (p.id) pId[p.id] = true; else pNoId[p.k] = true; });
       state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); nAll[k] = true; if (r.id) nId[r.id] = true; else nNoId[k] = true; });
       state.rows.forEach(function (r) { var k = personKey(r.fn, r.ln, r.gr); if (!(r.id ? (pId[r.id] || pNoId[k]) : pAll[k])) fresh.push(k); });
-      prev.forEach(function (p) { if (!(p.id ? (nId[p.id] || nNoId[p.k]) : nAll[p.k])) removed.push(p.k); });
-    } catch (e) { fresh = []; removed = []; }
+      var gone = [];
+      prev.forEach(function (p) { if (!(p.id ? (nId[p.id] || nNoId[p.k]) : nAll[p.k])) gone.push({ k: p.k, id: p.id }); });
+      /* Someone leaves the list only by showing up in the report again; new cancellations are added and flagged as new. */
+      var kept = [];
+      removed.forEach(function (k, i) { var g = { k: k, id: removedIds[i] }; if (!(g.id ? (nId[g.id] || nNoId[g.k]) : nAll[g.k])) kept.push(g); });
+      var have = {}, gk = function (g) { return g.id ? "i" + g.id : "n" + g.k; };
+      kept.forEach(function (g) { have[gk(g)] = true; });
+      gone.forEach(function (g) { if (!have[gk(g)]) { have[gk(g)] = true; kept.push(g); removedNew.push(g.k); } });
+      removed = kept.map(function (g) { return g.k; }); removedIds = kept.map(function (g) { return g.id; });
+    } catch (e) { fresh = []; removedNew = []; }
   }
   await ref.set({
     fresh: fresh,
     removed: removed,
+    removedIds: removedIds.some(function (x) { return x; }) ? removedIds : [],
+    removedNew: removedNew,
     rowIds: state.rows.some(function (r) { return r.id; }) ? state.rows.map(function (r) { return r.id || ""; }) : [],
     cmp: cur.exists,
     name: key,
@@ -1435,7 +1450,12 @@ function openPreview(d) {
   var si = document.createElement("input"); si.type = "search"; si.className = "field search"; si.placeholder = "חיפוש בטבלה"; si.setAttribute("aria-label", "חיפוש בטבלה"); si.autocomplete = "off";
   sw.appendChild(si); addClearButton(si);
   var freshSet = {}, nFresh = 0, newOnly = false, goneOnly = false;
-  var goneList = (Array.isArray(d.removed) ? d.removed : []).map(function (k) { return String(k).split("|"); }), nGone = goneList.length;
+  /* Cancellations accumulate across reports; the ones from the latest report are flagged as new (24 hours, or until the next report), newest first. */
+  var goneNewSet = {};
+  (Array.isArray(d.removedNew) && isRecent(d.updatedAt) ? d.removedNew : []).forEach(function (k) { goneNewSet[k] = true; });
+  var goneAll = (Array.isArray(d.removed) ? d.removed : []).map(function (k) { return { k: String(k), n: !!goneNewSet[k] }; });
+  goneAll = goneAll.filter(function (g) { return g.n; }).concat(goneAll.filter(function (g) { return !g.n; }));
+  var goneList = goneAll.map(function (g) { var a = g.k.split("|"); a.isNew = g.n; return a; }), nGone = goneList.length, nGoneNew = goneList.filter(function (g) { return g.isNew; }).length;
   var freshKey = "freshSeen:" + (state.me || "") + ":" + d.name, freshStamp = String(tsMs(d.updatedAt)), marks = false;
   try { marks = localStorage.getItem(freshKey) !== freshStamp; } catch (e) { marks = true; }
   (Array.isArray(d.fresh) && isRecent(d.updatedAt) ? d.fresh : []).forEach(function (k) { freshSet[k] = true; });
@@ -1515,9 +1535,9 @@ function openPreview(d) {
   /* People who were in the previous report but not in this one: hidden rows, shown only under "ביטלו". */
   var fiG = rows.length && rows[0].indexOf("שם פרטי") !== -1 ? rows[0].indexOf("שם פרטי") : 0, liG = rows.length && rows[0].indexOf("שם משפחה") !== -1 ? rows[0].indexOf("שם משפחה") : 1;
   goneList.forEach(function (g) {
-    var tr = document.createElement("tr"); tr.className = "gone"; tr.hidden = true;
+    var tr = document.createElement("tr"); tr.className = g.isNew ? "gone gone-new" : "gone"; tr.hidden = true;
     for (var ci = 0; ci < cols; ci++) { var td = document.createElement("td"); td.textContent = ci === fiG ? g[0] : ci === liG ? g[1] : ci === gi ? g[2] : ""; tr.appendChild(td); }
-    if (tr.cells[tagCell()]) tr.cells[tagCell()].className = "tagcell gonecell";
+    if (tr.cells[tagCell()]) tr.cells[tagCell()].className = g.isNew ? "tagcell gonecell gone-newcell" : "tagcell gonecell";
     tbd.appendChild(tr);
   });
   wrap.appendChild(t);
@@ -1542,7 +1562,7 @@ function openPreview(d) {
     var what = [];
     if (newOnly) what.push("חדשים"); if (goneOnly) what.push("ביטלו");
     if (grades.length && grades.length < order.length) what.push((grades.length === 1 ? "שכבה " : "שכבות ") + gradeText(order.filter(function (g) { return grades.indexOf(g) !== -1; })));
-    count.textContent = active ? (what.length ? what.join(" · ") + " — " : "") + (goneOnly ? shown + " רשומים" : shown + " מתוך " + total + " רשומים") : (marks && nFresh ? freshLine() : "");
+    count.textContent = active ? (what.length ? what.join(" · ") + " — " : "") + (goneOnly ? shown + " רשומים" + (nGoneNew ? " · " + nGoneNew + (nGoneNew === 1 ? " חדש" : " חדשים") : "") : shown + " מתוך " + total + " רשומים") : (marks && nFresh ? freshLine() : "");
     wrap.classList.toggle("marks", (marks || newOnly) && nFresh > 0);
     var tagged = ((marks || newOnly) && nFresh > 0) || goneOnly;
     wrap.classList.toggle("tagged", tagged); headRow.classList.toggle("tagged", tagged); setCols(tagged);
@@ -1933,8 +1953,8 @@ async function loadUsers() {
     var us = await db.collection("users").get();
     var as = await db.collection("admins").get();
     var admins = {}; as.forEach(function (d) { admins[d.id] = true; });
-    var list = []; us.forEach(function (d) { var dd = d.data() || {}; list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", admin: !!admins[d.id] }); });
-    Object.keys(admins).forEach(function (id) { if (!list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
+    var list = [], paused = {}; us.forEach(function (d) { var dd = d.data() || {}; if (dd.paused) { paused[d.id] = true; return; } list.push({ id: d.id, name: dd.name || "", fullName: dd.fullName || "", idNumber: dd.idNumber || "", role: dd.role || "", admin: !!admins[d.id] }); });
+    Object.keys(admins).forEach(function (id) { if (!paused[id] && !list.some(function (x) { return x.id === id; })) list.push({ id: id, name: "", admin: true }); });
     list.sort(function (a, b) { return (b.admin - a.admin) || (a.name || shortId(a.id)).localeCompare(b.name || shortId(b.id), "he"); });
     state.users = list;
     renderUsers();

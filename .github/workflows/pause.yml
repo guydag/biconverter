@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "pause | resume | list"
+        description: "pause | resume | sync | list"
         default: "list"
       role:
         description: "Role"
