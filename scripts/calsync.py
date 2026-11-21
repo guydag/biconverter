@@ -388,7 +388,8 @@ def load(book):
     legend = {}
     for sh in sheets:
         for k, v in sh.legend().items():
-            legend.setdefault(k, v)
+            if k not in legend and v not in legend.values():
+                legend[k] = v
     # The yellow of regular activities is not in the sheet's colour key.
     legend.setdefault("FFFFE598", "פעולה")
     return sheets, legend
