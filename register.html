@@ -134,7 +134,7 @@ label.l small { font-weight:500; color: var(--muted); margin-inline-start:6px; }
         <input type="radio" name="role" id="r4" value="מרכז צעיר"><label for="r4">מרכז צעיר</label>
         <input type="radio" name="role" id="r5" value="מרכז בוגר"><label for="r5">מרכז בוגר</label>
         <input type="radio" name="role" id="r6" value="דרג מתנדב"><label for="r6">דרג מתנדב</label>
-        <input type="radio" name="role" id="r7" value="מלווה ט"><label for="r7">מלווה ט</label>
+        <input type="radio" name="role" id="r7" value="מלווה ט׳"><label for="r7">מלווה ט׳</label>
         <input type="radio" name="role" id="r8" value="מדריכת שכבה"><label for="r8">מדריכת שכבה</label>
       </div>
       <div class="msg" id="m-role"></div>
@@ -204,7 +204,7 @@ $("f").addEventListener("submit", async function (ev) {
 });
 
 /* Direct manager: alumni have none; everyone else picks one from a public list kept up to date by the sync job. */
-var NO_MGR = ["מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה", "בוגר"], MANAGERS = [];
+var NO_MGR = ["מרכז בוגר", "דרג מתנדב", "מלווה ט׳", "מדריכת שכבה", "בוגר"], MANAGERS = [];
 function syncMgr() { var rb = document.querySelector('input[name=role]:checked'); $("mgrWrap").hidden = !rb || NO_MGR.indexOf(rb.value) !== -1 || !MANAGERS.length; }
 Array.prototype.forEach.call(document.querySelectorAll('input[name=role]'), function (r) { r.addEventListener("change", function () { $("m-mgr").textContent = ""; syncMgr(); }); });
 $("mgr").addEventListener("change", function () { $("m-mgr").textContent = ""; });

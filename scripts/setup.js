@@ -7,7 +7,7 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT) { console.log("FIREBASE_SERVICE_ACCOU
 admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
 const db = admin.firestore();
 const APPLY = String(process.env.APPLY) !== "false";
-const BY_NAME = { "ליאור": "מרכז בוגר", "אדוה": "דרג מתנדב", "גיא": "מלווה ט" };
+const BY_NAME = { "ליאור": "מרכז בוגר", "אדוה": "דרג מתנדב", "גיא": "מלווה ט׳" };
 
 function newRole(d) {
   if (d.role === "מרכז") return "מרכז צעיר";
