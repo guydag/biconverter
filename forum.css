@@ -371,3 +371,5 @@ body[data-area="links"] main#app { max-width: 760px; }
   .tg:not(.one) .cv-chip { font-size: 10px; padding: 0 3px; height: 18px; }
   .tg-scroll { height: 62vh; }
 }
+.tg-scroll, .tg-allrow { scrollbar-width: none; }
+.tg-scroll::-webkit-scrollbar, .tg-allrow::-webkit-scrollbar { display: none; }
