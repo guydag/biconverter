@@ -2031,7 +2031,7 @@ function pendMsg(t, bits) {
   ok.addEventListener("click", function () { m.hidden = true; if (!$("pendingList").children.length) $("pendingSection").hidden = true; });
   m.appendChild(ok); m.hidden = false;
 }
-function setDot(n) { var a = document.querySelector('a.iconbtn[href="#settings"]'); if (a) a.classList.toggle("dot", n > 0); }
+function setDot(n) { Array.prototype.forEach.call(document.querySelectorAll('a.iconbtn[href="#settings"]'), function (a) { a.classList.toggle("dot", n > 0); }); }
 async function loadPending() {
   var sec = $("pendingSection"), box = $("pendingList");
   try {
