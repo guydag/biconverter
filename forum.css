@@ -88,7 +88,7 @@ body[data-area="links"] main#app { max-width: 760px; }
 .cv-seg button { font: inherit; height: 32px; padding: 0 14px; font-size: 13.5px; font-weight: 600; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
 .cv-seg button.on { background: var(--surface); color: var(--fg); box-shadow: var(--shadow-sm); }
 .cv-sub { color: var(--muted); font-size: 12.5px; margin: 0 0 -6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; }
-.cv-legend { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; margin-inline-start: 12px; }
+.cv-legend { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .cv-legend span { display: inline-flex; align-items: center; gap: 5px; color: var(--fg); }
 .cv-legend i { width: 9px; height: 9px; border-radius: 50%; background: var(--cc); }
 .cv-body { animation: cvIn .25s ease; touch-action: pan-y; }
