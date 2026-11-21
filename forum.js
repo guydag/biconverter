@@ -348,7 +348,7 @@
     var weeks = (diffDays(start, end) + 1) / 7;
     var phone = window.matchMedia("(max-width: 600px)").matches;
     var BT = phone ? 25 : 29, BL = phone ? 18 : 22, STEP = phone ? 18 : 22;
-    var CELL = Math.max(phone ? 64 : 72, Math.floor(Cal.space(phone ? 30 : 34) / weeks));
+    var CELL = Math.max(phone ? 50 : 58, Math.floor(Cal.space(phone ? 30 : 34) / weeks));
     var acts = {}; list.forEach(function (e) { if (F.isActivity(e)) acts[e.date] = true; });
     var t = today();
 
