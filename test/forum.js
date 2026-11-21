@@ -688,7 +688,7 @@
      ====================================================================== */
   var PLACES = [
     { key: "fire", name: "שטח אש", icon: "fire", hint: "יש לתאם עם בוגר בהודעה, ולכתוב אותו לאחר התיאום.", extra: [{ k: "boger", label: "הבוגר שתואם איתו" }] },
-    { key: "home", name: "פעילות בשבט", icon: "home", hint: "כמה חניכים נמצאים בבית." },
+    { key: "home", name: "פעילות בבית", icon: "home", hint: "כמה חניכים נמצאים בבית." },
     { key: "out", name: "פעילות מחוץ לשבט", icon: "bus", hint: "צריך אישור הורים בוואטסאפ או בכתב.", extra: [{ k: "where", label: "לאן יוצאים" }, { k: "groups", label: "כמות קבוצות", type: "number" }] },
     { key: "meah", name: "גן המאה", icon: "tree", extra: [{ k: "boger", label: "שם הבוגר בשטח" }] },
     { key: "zuck", name: "גן צוקרמן", icon: "tree", extra: [{ k: "boger", label: "שם הבוגר בשטח" }] },
