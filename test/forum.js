@@ -201,12 +201,12 @@
     head(v, "יומן", "הלו״ז השבטי");
     var top = el("div", "cv-top");
     var nav = el("div", "cv-nav");
-    nav.appendChild(Object.assign(el("button", "cv-today", "היום"), { type: "button", onclick: function () { Cal.cur = firstOfMonth(today()); Cal.agFrom = today(); Cal.render(); } }));
+    nav.appendChild(Object.assign(el("button", "cv-today", "היום"), { type: "button", onclick: function () { Cal.cur = firstOfMonth(today()); Cal.agFrom = today(); Cal.d0 = today(); Cal.render(); } }));
     nav.appendChild(iconBtn("prev", "החודש הקודם", function () { Cal.step(-1); }));
     nav.appendChild(iconBtn("next", "החודש הבא", function () { Cal.step(1); }));
     Cal.titleEl = el("h2", "cv-title"); nav.appendChild(Cal.titleEl);
     var seg = el("div", "cv-seg"); seg.setAttribute("role", "tablist");
-    [["month", "חודש"], ["agenda", "לו״ז"]].forEach(function (m) {
+    [["month", "חודש"], ["week", "שבוע"], ["day", "יום"], ["agenda", "לו״ז"]].forEach(function (m) {
       var b = el("button", m[0] === Cal.mode ? "on" : "", m[1]); b.type = "button"; b.dataset.m = m[0];
       b.addEventListener("click", function () { Cal.mode = m[0]; Array.prototype.forEach.call(seg.children, function (x) { x.classList.toggle("on", x === b); }); Cal.render(); });
       seg.appendChild(b);
@@ -215,15 +215,16 @@
     Cal.subEl = el("div", "cv-sub"); v.appendChild(Cal.subEl);
     Cal.note = el("div", "cal-note"); Cal.note.hidden = true; v.appendChild(Cal.note);
     Cal.body = el("div", "cv-body"); v.appendChild(Cal.body);
-    Cal.cur = firstOfMonth(today());
+    Cal.cur = firstOfMonth(today()); Cal.d0 = today();
+    Cal.seg = seg;
     var fab = el("button", "cal-fab"); fab.id = "calFab"; fab.type = "button"; fab.innerHTML = svg("plus", 24) + "<span>אירוע חדש</span>"; fab.hidden = !can.editCal();
-    fab.addEventListener("click", function () { Cal.form(null, F.area === "cal" && Cal.mode === "month" && Cal.cur.slice(0, 7) !== today().slice(0, 7) ? Cal.cur : today()); });
+    fab.addEventListener("click", function () { Cal.form(null, Cal.mode === "week" || Cal.mode === "day" ? (Cal.d0 || today()) : Cal.mode === "month" && Cal.cur.slice(0, 7) !== today().slice(0, 7) ? Cal.cur : today()); });
     document.body.appendChild(fab);
     /* Swipe sideways to change month (RTL: swiping right goes forward). */
     var x0 = null, y0 = 0;
     Cal.body.addEventListener("touchstart", function (e) { if (e.touches.length === 1) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; } }, { passive: true });
     Cal.body.addEventListener("touchend", function (e) {
-      if (x0 === null || Cal.mode !== "month") return;
+      if (x0 === null || Cal.mode === "agenda") return;
       var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) Cal.step(dx > 0 ? 1 : -1);
     }, { passive: true });
@@ -231,7 +232,15 @@
   function firstOfMonth(s) { return s.slice(0, 8) + "01"; }
   Cal.step = function (n) {
     if (Cal.mode === "agenda") { Cal.agFrom = addDays(Cal.agFrom || today(), n * 30); }
-    else Cal.cur = addMonths(Cal.cur, n);
+    else if (Cal.mode === "week") Cal.d0 = addDays(Cal.d0, n * 7);
+    else if (Cal.mode === "day") Cal.d0 = addDays(Cal.d0, n);
+    else { Cal.cur = addMonths(Cal.cur, n); Cal.d0 = Cal.cur.slice(0, 7) === today().slice(0, 7) ? today() : Cal.cur; }
+    if (Cal.mode === "week" || Cal.mode === "day") Cal.cur = firstOfMonth(Cal.d0);
+    Cal.render();
+  };
+  Cal.setMode = function (m, d) {
+    Cal.mode = m; if (d) { Cal.d0 = d; Cal.cur = firstOfMonth(d); }
+    Array.prototype.forEach.call(Cal.seg.children, function (x) { x.classList.toggle("on", x.dataset.m === m); });
     Cal.render();
   };
   Cal.load = function (force) {
@@ -311,7 +320,9 @@
     else if (Cal.failed) { Cal.note.innerHTML = svg("info", 18); Cal.note.appendChild(document.createTextNode("שינוי ששלחת לא נכנס לאקסל: " + (Cal.failed.error || "שגיאה") + " (" + (Cal.failed.title || "") + ")")); Cal.note.hidden = false; Cal.note.style.borderColor = "var(--err)"; Cal.note.style.color = "var(--err)"; }
     else if (pend) { Cal.note.innerHTML = svg("sync", 18); Cal.note.appendChild(document.createTextNode(pend === 1 ? "שינוי אחד ממתין להיכנס לאקסל (עד כמה דקות). הוא כבר מופיע ביומן עם פסים." : pend + " שינויים ממתינים להיכנס לאקסל (עד כמה דקות). הם כבר מופיעים ביומן עם פסים.")); Cal.note.hidden = false; }
     if (Cal.note.hidden) { Cal.note.style.borderColor = ""; Cal.note.style.color = ""; }
-    if (Cal.mode === "agenda") Cal.renderAgenda(list); else Cal.renderMonth(list);
+    if (Cal.mode === "agenda") Cal.renderAgenda(list);
+    else if (Cal.mode === "week" || Cal.mode === "day") Cal.renderGrid(list, Cal.mode === "day" ? 1 : 7, still);
+    else Cal.renderMonth(list);
   };
   function timeAgo(d) { var m = Math.round((Date.now() - d.getTime()) / 60000); return m < 1 ? "עכשיו" : m < 60 ? "לפני " + m + " דק׳" : m < 1440 ? "לפני " + Math.round(m / 60) + " שע׳" : "לפני " + Math.round(m / 1440) + " ימים"; }
   function sortEv(a, b) { return (a.time || "99:99").localeCompare(b.time || "99:99") || String(a.title).localeCompare(String(b.title), "he"); }
@@ -395,6 +406,112 @@
     b.addEventListener("click", function () { Cal.show(e); });
     return b;
   }
+  /* Week and day views: a time grid, like the גאנט׳ calendar. */
+  function mins(t) { var m = /^(\d{1,2}):(\d{2})/.exec(t || ""); return m ? +m[1] * 60 + +m[2] : null; }
+  Cal.renderGrid = function (list, days, still) {
+    var d0 = Cal.d0 || today();
+    var start = days === 7 ? addDays(d0, -parse(d0).getDay()) : d0, end = addDays(start, days - 1), t = today();
+    var a = parse(start), b = parse(end);
+    Cal.titleEl.textContent = days === 1 ? longDate(start) + " " + a.getFullYear()
+      : a.getMonth() === b.getMonth() ? a.getDate() + "–" + b.getDate() + " ב" + MONTHS[a.getMonth()] + " " + a.getFullYear()
+      : a.getDate() + " ב" + MONTHS[a.getMonth()] + " – " + b.getDate() + " ב" + MONTHS[b.getMonth()] + " " + b.getFullYear();
+    var phone = window.matchMedia("(max-width: 600px)").matches, HH = 42, BL = phone ? 20 : 22;
+    var tg = el("div", "tg" + (days === 1 ? " one" : "")); tg.style.setProperty("--days", days); tg.style.setProperty("--hh", HH + "px");
+    // Header: day names; tapping one opens that day.
+    var head = el("div", "tg-head"); head.appendChild(el("span", "tg-gut"));
+    for (var i = 0; i < days; i++) {
+      var d = addDays(start, i), dd = parse(d);
+      var h = el("button", "tg-dh" + (d === t ? " today" : "")); h.type = "button";
+      h.appendChild(el("small", "", DAYS_S[dd.getDay()])); h.appendChild(el("b", "", String(dd.getDate())));
+      h.addEventListener("click", function (x) { return function () { if (days === 1) Cal.day(x); else Cal.setMode("day", x); }; }(d));
+      head.appendChild(h);
+    }
+    tg.appendChild(head);
+    // All-day row: events without an hour; several days long = bars.
+    var allrow = el("div", "tg-allrow"); allrow.appendChild(el("span", "tg-gut", "כל היום"));
+    var untimed = list.filter(function (e) { return !e.time && e.date <= end && (e.end || e.date) >= start; });
+    var bars = untimed.filter(function (e) { return e.end && e.end !== e.date; }).sort(function (x, y) { return x.date.localeCompare(y.date) || diffDays(y.date, y.end) - diffDays(x.date, x.end); });
+    var lanes = [], used = []; for (i = 0; i < days; i++) used.push(0);
+    bars.forEach(function (e) {
+      var c0 = Math.max(0, diffDays(start, e.date)), c1 = Math.min(days - 1, diffDays(start, e.end));
+      var ln = 0; while (lanes[ln] && lanes[ln].some(function (r) { return !(c1 < r[0] || c0 > r[1]); })) ln++;
+      (lanes[ln] = lanes[ln] || []).push([c0, c1]);
+      e._g = { c0: c0, sp: c1 - c0 + 1, ln: ln, cl: e.date < start, cr: e.end > end };
+      for (var k = c0; k <= c1; k++) used[k] = Math.max(used[k], ln + 1);
+    });
+    for (i = 0; i < days; i++) {
+      var day = addDays(start, i), ad = el("div", "tg-ad"); ad.dataset.d = day;
+      if (used[i]) { var sp = el("i", "cv-sp"); sp.style.setProperty("--n", used[i]); ad.appendChild(sp); }
+      untimed.filter(function (e) { return (!e.end || e.end === e.date) && e.date === day; }).sort(sortEv).forEach(function (e) { ad.appendChild(chip(e)); });
+      allrow.appendChild(ad);
+    }
+    var bx = el("div", "tg-bars");
+    bars.forEach(function (e) {
+      var c = chip(e); c.classList.add("cv-bar"); if (e._g.cl) c.classList.add("cl"); if (e._g.cr) c.classList.add("cr");
+      c.style.setProperty("--c0", e._g.c0); c.style.setProperty("--sp", e._g.sp); c.style.setProperty("--ln", e._g.ln);
+      bx.appendChild(c);
+    });
+    allrow.appendChild(bx); allrow.style.setProperty("--bl", BL + "px");
+    tg.appendChild(allrow);
+    // Hours
+    var scroll = el("div", "tg-scroll"), body = el("div", "tg-body");
+    var hours = el("div", "tg-hours");
+    for (var hr = 0; hr < 24; hr++) { var sp2 = el("span", "", hr ? pad(hr) + ":00" : ""); sp2.style.top = (hr * HH) + "px"; hours.appendChild(sp2); }
+    var cols = el("div", "tg-cols");
+    var nowM = new Date().getHours() * 60 + new Date().getMinutes(), first = 24 * 60;
+    for (i = 0; i < days; i++) {
+      var dy = addDays(start, i), col = el("div", "tg-col" + (dy === t ? " today" : "")); col.dataset.d = dy;
+      // Timed events of this day (a timed event over several days fills each day).
+      var evs = list.filter(function (e) { return e.time && e.date <= dy && (e.end || e.date) >= dy; }).map(function (e) {
+        var s0 = e.date === dy ? mins(e.time) : 0;
+        var endDay = e.end || e.date, s1;
+        if (endDay !== dy) s1 = 24 * 60;
+        else if (e.timeEnd && mins(e.timeEnd) > s0) s1 = mins(e.timeEnd);
+        else if (e.timeEnd && e.date !== dy) s1 = mins(e.timeEnd);
+        else s1 = Math.min(24 * 60, s0 + 60);
+        return { e: e, s: s0, f: Math.max(s1, s0 + 15), from: e.date === dy, to: endDay === dy };
+      }).sort(function (x, y) { return x.s - y.s || y.f - x.f; });
+      // Side by side when they overlap.
+      var groups = [], cur = null;
+      evs.forEach(function (x) { if (!cur || x.s >= cur.end) { cur = { items: [], end: 0 }; groups.push(cur); } cur.items.push(x); cur.end = Math.max(cur.end, x.f); });
+      groups.forEach(function (g) {
+        var tracks = [];
+        g.items.forEach(function (x) { var k = 0; while (tracks[k] && tracks[k] > x.s) k++; tracks[k] = x.f; x.k = k; });
+        var n = tracks.length;
+        g.items.forEach(function (x) {
+          first = Math.min(first, x.s);
+          var e = x.e, bt = el("button", "tg-ev" + (e.pend ? " pend" : "")); bt.type = "button";
+          paint(bt, e.color || Cal.catColor(e.cat));
+          var hgt = (x.f - x.s) / 60 * HH;
+          if (hgt < 30) bt.classList.add("short");
+          bt.style.top = (x.s / 60 * HH) + "px"; bt.style.height = Math.max(16, hgt - 2) + "px";
+          bt.style.insetInlineStart = "calc(" + (x.k * 100 / n) + "% + 1px)"; bt.style.width = "calc(" + (100 / n) + "% - 3px)";
+          bt.appendChild(el("b", "", e.title));
+          var sm = el("small"), bd = el("bdi"); bd.dir = "ltr";
+          if (x.from && x.to) { bd.textContent = e.time + (e.timeEnd ? "–" + e.timeEnd : ""); sm.appendChild(bd); }
+          else if (x.from) { sm.appendChild(document.createTextNode("מ־")); bd.textContent = e.time; sm.appendChild(bd); }
+          else if (x.to && e.timeEnd) { sm.appendChild(document.createTextNode("עד ")); bd.textContent = e.timeEnd; sm.appendChild(bd); }
+          bt.appendChild(sm);
+          bt.addEventListener("click", function (ev) { ev.stopPropagation(); Cal.show(e); });
+          col.appendChild(bt);
+        });
+      });
+      if (dy === t) { var now = el("i", "tg-now"); now.style.top = (nowM / 60 * HH) + "px"; col.appendChild(now); }
+      col.addEventListener("click", function (dday) { return function (ev) {
+        if (!can.editCal() || ev.target !== this) return;
+        var r = this.getBoundingClientRect(), m = Math.floor((ev.clientY - r.top) / HH) * 60;
+        Cal.form(null, dday, pad(Math.floor(m / 60)) + ":00");
+      }; }(dy));
+      cols.appendChild(col);
+    }
+    body.appendChild(hours); body.appendChild(cols); scroll.appendChild(body); tg.appendChild(scroll);
+    var keep = still && Cal.body.querySelector(".tg-scroll") ? Cal.body.querySelector(".tg-scroll").scrollTop : null;
+    Cal.body.textContent = ""; Cal.body.appendChild(tg);
+    var top = Math.max(0, Math.min(first === 24 * 60 ? 8 * 60 : first, start <= t && t <= end ? nowM - 120 : 24 * 60) / 60 * HH - 10);
+    if (first === 24 * 60 && !(start <= t && t <= end)) top = 8 * HH;
+    scroll.scrollTop = keep != null ? keep : top;
+  };
+
   Cal.renderAgenda = function (list) {
     var from = Cal.agFrom || today(), to = addDays(from, 29), t = today();
     Cal.titleEl.textContent = shortDate(from) + " – " + shortDate(to);
@@ -470,7 +587,7 @@
   };
 
   /* New / edit event form */
-  Cal.form = function (e, date) {
+  Cal.form = function (e, date, atTime) {
     if (!can.editCal()) return;
     var editing = !!e;
     var base = e ? (Cal.events.filter(function (x) { return x.id === e.id; })[0] || e) : null;
@@ -498,10 +615,10 @@
     var tc = row("clock");
     var allDay = el("label", "evc-sw"); allDay.appendChild(el("span", "", "שעה")); var ai = el("input"); ai.type = "checkbox"; allDay.appendChild(ai); allDay.appendChild(el("i"));
     var tl = el("div", "evc-line evc-times");
-    var t1 = el("input", "evc-pick"); t1.type = "time"; t1.value = e && e.time ? pad5(e.time) : "16:30";
-    var t2 = el("input", "evc-pick"); t2.type = "time"; t2.value = e && e.timeEnd ? pad5(e.timeEnd) : "";
+    var t1 = el("input", "evc-pick"); t1.type = "time"; t1.value = e && e.time ? pad5(e.time) : (atTime || "16:30");
+    var t2 = el("input", "evc-pick"); t2.type = "time"; t2.value = e && e.timeEnd ? pad5(e.timeEnd) : (atTime ? pad(Math.min(23, +atTime.slice(0, 2) + 1)) + ":00" : "");
     tl.appendChild(t1); tl.appendChild(el("em", "", "עד")); tl.appendChild(t2);
-    ai.checked = !!(e && e.time);
+    ai.checked = !!(e && e.time) || !!atTime;
     function syncTime() { tl.hidden = !ai.checked; } ai.addEventListener("change", syncTime); syncTime();
     tc.appendChild(allDay); tc.appendChild(tl);
     // Category

@@ -39,7 +39,7 @@
 <meta name="application-name" content="פורום מוביל">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
 <meta name="theme-color" content="#fffaf3">
-<link rel="stylesheet" href="forum.css?v=2">
+<link rel="stylesheet" href="forum.css?v=3">
 <script>
 /* Set the theme before the page paints so a dark choice never flashes light first. */
 (function () {
@@ -417,6 +417,8 @@ footer .version { margin-top: 4px; }
 .eu-roles input { position: absolute; opacity: 0; pointer-events: none; }
 .eu-roles label { padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 999px; font-weight: 700; font-size: 14px; cursor: pointer; background: var(--bg); transition: all .15s; }
 .eu-roles input:checked + label { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.eu-roles.locked label { cursor: default; opacity: .55; }
+.eu-roles.locked input:checked + label { opacity: 1; }
 .eu-roles input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
 .eu-foot { position: sticky; bottom: 0; background: var(--surface); margin: 4px -18px 0; justify-content: flex-start; }
 .eu-foot .btn { min-width: 96px; }
@@ -728,7 +730,7 @@ button:focus-visible, summary:focus-visible, .eu-roles input:focus-visible + lab
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="forum.js?v=2"></script>
+<script src="forum.js?v=3"></script>
 <script>
 document.documentElement.lang = "he";
 document.documentElement.dir = "rtl";
@@ -2158,13 +2160,16 @@ function editUser(u, opts) {
   var role = u.role || "";
   ROLES.forEach(function (r, i) {
     var inp = document.createElement("input"); inp.type = "radio"; inp.name = "euRole"; inp.id = "euR" + i; inp.value = r; inp.checked = r === role;
-    inp.addEventListener("click", function () { if (role === r) { inp.checked = false; role = ""; } else role = r; });
+    /* Only managers change roles; everyone else keeps the role they registered with. */
+    if (opts.self && !state.isAdmin) inp.disabled = true;
+    inp.addEventListener("click", function () { if (inp.disabled) return; if (role === r) { inp.checked = false; role = ""; } else role = r; });
     var lb = document.createElement("label"); lb.htmlFor = inp.id; lb.textContent = r;
     rl.appendChild(inp); rl.appendChild(lb);
   });
   body.appendChild(fieldBlock("שם מלא", fn, "euName"));
   body.appendChild(fieldBlock("תעודת זהות", idn, "euId"));
   var rw = document.createElement("div"); rw.className = "eu-f"; var rlab = document.createElement("span"); rlab.className = "eu-lab"; rlab.textContent = "תפקיד"; rw.appendChild(rlab); rw.appendChild(rl); body.appendChild(rw);
+  if (opts.self && !state.isAdmin) { rl.classList.add("locked"); var rn = document.createElement("p"); rn.className = "eu-hint-role"; rn.textContent = "רק מנהל יכול לשנות תפקיד."; rn.style.cssText = "margin:0;color:var(--muted);font-size:13px"; rw.appendChild(rn); }
   var pwOld, pwNew, pwNew2, pwOpen = false;
   if (opts.self) {
     var tg = document.createElement("button"); tg.type = "button"; tg.className = "eu-pwtoggle"; tg.setAttribute("aria-expanded", "false");
