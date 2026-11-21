@@ -113,7 +113,7 @@
   var AREAS = [
     { key: "cal", label: "יומן", icon: "cal" },
     { key: "book", label: "שריון מתחמים", short: "שריונים", icon: "flag" },
-    { key: "gear", label: "ציוד", icon: "box" },
+    { key: "gear", label: "ציוד מרכז", icon: "box" },
     { key: "reg", label: "רשומים", icon: "file" },
     { key: "links", label: "קישורים", icon: "link" }
   ];
@@ -198,7 +198,7 @@
   Cal.build = function () {
     Cal.built = true;
     var v = Cal.view;
-    head(v, "יומן", "הלו״ז השבטי");
+    head(v, "יומן");
     var top = el("div", "cv-top");
     var nav = el("div", "cv-nav");
     nav.appendChild(Object.assign(el("button", "cv-today", "היום"), { type: "button", onclick: function () { Cal.cur = firstOfMonth(today()); Cal.agFrom = today(); Cal.d0 = today(); Cal.render(); } }));
@@ -307,8 +307,6 @@
     if (!still) { Cal.body.style.animation = "none"; void Cal.body.offsetWidth; Cal.body.style.animation = ""; }
     // Subtitle: sync state + legend
     Cal.subEl.textContent = "";
-    var src = el("span", "", Cal.syncedAt ? "מסונכרן עם האקסל של הלו״ז · עודכן " + timeAgo(Cal.syncedAt) : "מסונכרן עם האקסל של הלו״ז");
-    Cal.subEl.appendChild(src);
     var lg = el("span", "cv-legend");
     Cal.cats.forEach(function (c) { var s = el("span"); var i = el("i"); paint(i, c.color); s.appendChild(i); s.appendChild(document.createTextNode(c.name)); lg.appendChild(s); });
     Cal.subEl.appendChild(lg);
@@ -700,10 +698,7 @@
   Book.build = function () {
     Book.built = true;
     var v = Book.view;
-    head(v, "שריון מתחמים", "לפי תאריכי הפעולות בלו״ז");
-    var r = el("div", "bk-rules");
-    r.innerHTML = "<span>אפשר לשריין עד <b>חודשיים קדימה</b></span><span>שריון אחד <b>בכל חודשיים</b></span><span>מדריכי קורס – בלי הגבלה</span>";
-    v.appendChild(r);
+    head(v, "שריון מתחמים");
     var seg = el("div", "fseg");
     [["next", "פעולות קרובות"], ["mine", "השריונים שלי"]].forEach(function (s) {
       var b = el("button", s[0] === Book.tab ? "on" : "", s[1]); b.type = "button";
@@ -844,7 +839,7 @@
   Gear.build = function () {
     Gear.built = true;
     var v = Gear.view;
-    var h = head(v, "בקשת ציוד", "לתאריכי פעולות בלבד");
+    var h = head(v, "ציוד מרכז");
     Gear.newBtn = btn("בקשת ציוד חדשה", "primary small fv-act", function () { Gear.form(); }, "plus");
     v.appendChild(Gear.newBtn);
     Gear.seg = el("div", "fseg"); v.appendChild(Gear.seg);
