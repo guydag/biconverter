@@ -600,7 +600,8 @@ def run_actions():
         msg = str(e)
         print("Drive error:", msg)
         status.set({"ok": False, "error": msg[:500], "serviceAccount": info.get("client_email"), "at": firestore.SERVER_TIMESTAMP})
-        sys.exit(1)
+        # Not a failed run: until Drive access is switched on this would otherwise email a failure every 5 minutes.
+        return
     data = drive_download(s)
     book = Book(data)
 
