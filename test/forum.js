@@ -6,7 +6,7 @@
   var F = window.Forum = {};
 
   /* ---------- roles ---------- */
-  var BOGER = ["מרכז בוגר", "דרג מתנדב", "מלווה ט", "מדריכת שכבה"];
+  var BOGER = ["מרכז בוגר", "דרג מתנדב", "מלווה ט׳", "מדריכת שכבה"];
   F.ROLES = ["מדריך קורס", "ראשג״ד", "ראש״צ", "מרכז צעיר"].concat(BOGER);
   F.BOGER = BOGER;
   var me = { id: "", name: "", fullName: "", role: "", admin: false };
