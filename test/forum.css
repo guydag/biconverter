@@ -134,7 +134,7 @@ body[data-area="links"] main#app { max-width: 760px; }
 .cal-fab:hover { box-shadow: 0 8px 26px rgba(0,0,0,.2), 0 0 0 1px var(--line); }
 .cal-fab:active { transform: scale(.95); }
 .cal-fab[hidden] { display: none; }
-@media (min-width: 900px) { .cal-fab { bottom: 26px; inset-inline-end: calc(266px + env(safe-area-inset-right)); } }
+@media (min-width: 900px) { .cal-fab { bottom: 26px; } }
 .cal-note { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); border: 1px dashed var(--line); color: var(--muted); font-size: 14px; }
 .cal-note[hidden] { display: none; }
 .cal-note svg { width: 18px; height: 18px; flex: 0 0 auto; }
