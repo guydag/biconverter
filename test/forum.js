@@ -152,6 +152,12 @@
     Book.view = makeView("viewBook");
     Gear.view = makeView("viewGear");
     Links.view = makeView("viewLinks");
+    /* The reports area gets the same header as the other areas. */
+    var main = $("viewMain"), tmp = el("div"); head(tmp, "רשומים");
+    main.insertBefore(tmp.firstChild, main.firstChild);
+    /* Signing out moved to the bottom of the settings page. */
+    var set = $("settingsBody");
+    if (set) { var lo = btn("התנתקות", "ghost small set-logout", function () { location.hash = ""; auth.signOut(); }); var ver = set.querySelector(".version"); set.insertBefore(lo, ver || null); }
     window.addEventListener("resize", function () {
       Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) { var a = AREAS.filter(function (x) { return x.key === t.dataset.area; })[0]; t.querySelector(".tl").textContent = window.innerWidth >= 900 ? a.label : (a.short || a.label); });
       if (F.area === "cal" && Cal.loaded) Cal.render(true);
@@ -205,16 +211,16 @@
     nav.appendChild(iconBtn("prev", "החודש הקודם", function () { Cal.step(-1); }));
     nav.appendChild(iconBtn("next", "החודש הבא", function () { Cal.step(1); }));
     Cal.titleEl = el("h2", "cv-title"); nav.appendChild(Cal.titleEl);
-    var seg = el("div", "fseg cv-seg"); seg.setAttribute("role", "tablist");
+    var seg = el("div", "cv-seg"); seg.setAttribute("role", "tablist");
     [["month", "חודש"], ["week", "שבוע"], ["day", "יום"], ["agenda", "לו״ז"]].forEach(function (m) {
       var b = el("button", m[0] === Cal.mode ? "on" : "", m[1]); b.type = "button"; b.dataset.m = m[0];
       b.addEventListener("click", function () { Cal.mode = m[0]; Array.prototype.forEach.call(seg.children, function (x) { x.classList.toggle("on", x === b); }); Cal.render(); });
       seg.appendChild(b);
     });
     top.appendChild(nav); top.appendChild(seg); v.appendChild(top);
+    Cal.subEl = el("div", "cv-sub"); v.appendChild(Cal.subEl);
     Cal.note = el("div", "cal-note"); Cal.note.hidden = true; v.appendChild(Cal.note);
     Cal.body = el("div", "cv-body"); v.appendChild(Cal.body);
-    Cal.subEl = el("div", "cv-sub"); v.appendChild(Cal.subEl);
     Cal.cur = firstOfMonth(today()); Cal.d0 = today();
     Cal.seg = seg;
     var fab = el("button", "cal-fab"); fab.id = "calFab"; fab.type = "button"; fab.innerHTML = svg("plus", 24) + "<span>אירוע חדש</span>"; fab.hidden = !can.editCal();
