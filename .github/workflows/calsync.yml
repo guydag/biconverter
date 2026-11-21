@@ -1,7 +1,8 @@
 name: Sync the yearly schedule with Excel
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    # Each run keeps watching for ~50 minutes; a new one starts when it ends, so changes sync within seconds.
+    - cron: "*/20 * * * *"
   workflow_dispatch:
 concurrency:
   group: calsync
@@ -11,7 +12,7 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,6 +21,6 @@ jobs:
           cache: pip
           cache-dependency-path: scripts/requirements.txt
       - run: pip install -r scripts/requirements.txt
-      - run: python scripts/calsync.py
+      - run: python -u scripts/calsync.py --watch 50
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
