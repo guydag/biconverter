@@ -205,16 +205,16 @@
     nav.appendChild(iconBtn("prev", "החודש הקודם", function () { Cal.step(-1); }));
     nav.appendChild(iconBtn("next", "החודש הבא", function () { Cal.step(1); }));
     Cal.titleEl = el("h2", "cv-title"); nav.appendChild(Cal.titleEl);
-    var seg = el("div", "cv-seg"); seg.setAttribute("role", "tablist");
+    var seg = el("div", "fseg cv-seg"); seg.setAttribute("role", "tablist");
     [["month", "חודש"], ["week", "שבוע"], ["day", "יום"], ["agenda", "לו״ז"]].forEach(function (m) {
       var b = el("button", m[0] === Cal.mode ? "on" : "", m[1]); b.type = "button"; b.dataset.m = m[0];
       b.addEventListener("click", function () { Cal.mode = m[0]; Array.prototype.forEach.call(seg.children, function (x) { x.classList.toggle("on", x === b); }); Cal.render(); });
       seg.appendChild(b);
     });
     top.appendChild(nav); top.appendChild(seg); v.appendChild(top);
-    Cal.subEl = el("div", "cv-sub"); v.appendChild(Cal.subEl);
     Cal.note = el("div", "cal-note"); Cal.note.hidden = true; v.appendChild(Cal.note);
     Cal.body = el("div", "cv-body"); v.appendChild(Cal.body);
+    Cal.subEl = el("div", "cv-sub"); v.appendChild(Cal.subEl);
     Cal.cur = firstOfMonth(today()); Cal.d0 = today();
     Cal.seg = seg;
     var fab = el("button", "cal-fab"); fab.id = "calFab"; fab.type = "button"; fab.innerHTML = svg("plus", 24) + "<span>אירוע חדש</span>"; fab.hidden = !can.editCal();
@@ -1072,7 +1072,8 @@
     var lastCat = null;
     Links.list.forEach(function (l) {
       if ((l.cat || "") !== lastCat) { lastCat = l.cat || ""; if (lastCat) box.appendChild(el("div", "lk-cat", lastCat)); }
-      var a = el("a", "lk"); a.href = l.url; a.target = "_blank"; a.rel = "noopener";
+      var a = el("a", "lk"); a.href = l.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.addEventListener("click", function (ev) { if (ev.defaultPrevented) return; ev.preventDefault(); var w = window.open(l.url, "_blank", "noopener"); if (!w) location.href = l.url; });
       var fav = el("span", "fav"); var host = ""; try { host = new URL(l.url).hostname; } catch (e) {}
       if (host) { var im = el("img"); im.alt = ""; im.src = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(host) + "&sz=64"; im.onerror = function () { fav.textContent = (l.title || "?").charAt(0); }; fav.appendChild(im); } else fav.textContent = (l.title || "?").charAt(0);
       a.appendChild(fav);

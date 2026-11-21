@@ -373,3 +373,27 @@ body[data-area="links"] main#app { max-width: 760px; }
 }
 .tg-scroll, .tg-allrow { scrollbar-width: none; }
 .tg-scroll::-webkit-scrollbar, .tg-allrow::-webkit-scrollbar { display: none; }
+
+/* Calendar in the same look as the other pages: soft cards, same segmented control, colour key at the bottom. */
+#viewCal .cv-seg { background: var(--line); border-radius: 12px; padding: 3px; gap: 3px; }
+:root[data-theme="dark"] #viewCal .cv-seg { background: var(--bg); }
+#viewCal .cv-seg button { height: auto; font-size: 14px; font-weight: 700; padding: 7px 14px; border-radius: 9px; }
+#viewCal .cv-seg button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
+:root[data-theme="dark"] #viewCal .cv-seg button.on { background: var(--line); }
+#viewCal .cv-month, #viewCal .tg, #viewCal .cal-day { border: 0; border-radius: var(--radius); box-shadow: var(--shadow); }
+#viewCal .cv-wd, #viewCal .tg-head { background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
+#viewCal .cv-wd span { color: var(--accent); }
+#viewCal .cv-today { border: 0; background: var(--surface); box-shadow: 0 1px 3px rgba(120,70,30,.14); border-radius: 999px; height: 36px; padding: 0 16px; font-weight: 700; }
+#viewCal .cv-ib { border-radius: 50%; }
+#viewCal .cv-title { font-size: 20px; }
+#viewCal .cv-top { margin-bottom: -4px; }
+#viewCal .cv-sub { margin: -4px 0 0; justify-content: center; }
+#viewCal .cv-legend { justify-content: center; color: var(--muted); }
+#viewCal .cv-legend span { color: var(--muted); }
+#viewCal .cal-note { border-style: solid; border-color: transparent; background: var(--warm-soft); color: var(--warm-fg); }
+@media (max-width: 600px) {
+  #viewCal .cv-seg { width: 100%; }
+  #viewCal .cv-seg button { flex: 1 1 0; padding: 7px 6px; }
+  #viewCal .cv-sub .cv-legend { display: flex; font-size: 11px; }
+  #viewCal .cv-month, #viewCal .tg { border-radius: 16px; }
+}
